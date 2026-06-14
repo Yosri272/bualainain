@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "312576336309",
+    "project_id": "bo-family",
+    "storage_bucket": "bo-family.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:312576336309:android:20e07462746a057976b9fc",
+        "android_client_info": {
+          "package_name": "com.example.bualainain"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYRITk6zmYYAZGXL_awIWRDLJqaOd9isc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
