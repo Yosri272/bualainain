@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'widgets/custom_status_bar.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -197,12 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Positioned(
-            top: 28,
-            left: 0,
-            right: 0,
-            child: CustomStatusBar(),
-          ),
+
           Positioned(
             right: 28,
             bottom: -38,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'widgets/custom_status_bar.dart';
 import 'widgets/custom_bottom_nav.dart';
 
 class NewsDetailsScreen extends StatelessWidget {
@@ -97,12 +96,6 @@ class NewsDetailsScreen extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Positioned(
-            top: 28,
-            left: 0,
-            right: 0,
-            child: CustomStatusBar(),
-          ),
 
           Positioned(
             right: 28,

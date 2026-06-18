@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'widgets/custom_status_bar.dart';
 import 'widgets/custom_bottom_nav.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -139,12 +138,7 @@ class _AdminScreenState extends State<AdminScreen> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Positioned(
-            top: 18,
-            left: 0,
-            right: 0,
-            child: CustomStatusBar(),
-          ),
+
           Positioned(
             right: 24,
             bottom: -45,
@@ -509,7 +503,7 @@ class _NotificationRow extends StatelessWidget {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeColor: Colors.white,
+              activeThumbColor: Colors.white,
               activeTrackColor: const Color(0xff5B6C99),
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: const Color(0xffE7E7E7),

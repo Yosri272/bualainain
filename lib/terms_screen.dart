@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'widgets/custom_status_bar.dart';
 import 'widgets/custom_bottom_nav.dart';
 
 class TermsScreen extends StatelessWidget {
@@ -102,12 +101,7 @@ class TermsScreen extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Positioned(
-            top: 18,
-            left: 0,
-            right: 0,
-            child: CustomStatusBar(),
-          ),
+
           Positioned(
             right: 24,
             bottom: -45,

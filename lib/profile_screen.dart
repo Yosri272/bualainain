@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'widgets/custom_status_bar.dart';
 import 'widgets/custom_bottom_nav.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -69,6 +68,9 @@ class ProfileScreen extends StatelessWidget {
                         BlendMode.srcIn,
                       ),
                     ),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/NotificationSettings');
+                    },
                   ),
                   _ProfileItem(
                     title: 'تواصل معنا',
@@ -182,12 +184,6 @@ class ProfileScreen extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Positioned(
-            top: 18,
-            left: 0,
-            right: 0,
-            child: CustomStatusBar(),
-          ),
 
           Positioned(
             right: 24,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class CustomBottomNav extends StatelessWidget {
   final int selectedIndex;
@@ -68,14 +70,56 @@ class CustomBottomNav extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SvgPicture.asset(
-                        items[index]['icon'] as String,
-                        width: 24,
-                        height: 24,
-                        colorFilter: ColorFilter.mode(
-                          isSelected ? activeColor : navColor,
-                          BlendMode.srcIn,
-                        ),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          SvgPicture.asset(
+                            items[index]['icon'] as String,
+                            width: 24,
+                            height: 24,
+                            colorFilter: ColorFilter.mode(
+                              isSelected ? activeColor : navColor,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+
+                          if (index == 2)
+                            Positioned(
+                              top: -6,
+                              right: -8,
+                              child: Container(
+                                width: 18,
+                                height: 18,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child:  Center(
+                                  child: StreamBuilder<QuerySnapshot>(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('notifications')
+                                        .snapshots(),
+                                    builder: (context, snapshot) {
+                                      if (!snapshot.hasData) {
+                                        return const SizedBox();
+                                      }
+
+                                      final count = snapshot.data!.docs.length;
+
+                                      return Text(
+                                        count > 99 ? '99+' : count.toString(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
 
                       const SizedBox(height: 4),

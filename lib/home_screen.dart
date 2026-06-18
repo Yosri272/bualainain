@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'widgets/custom_bottom_nav.dart';
-import 'widgets/custom_status_bar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -57,28 +59,73 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const CustomStatusBar(),
           const SizedBox(height: 35),
 
-          const Text(
-            'ياهلا فيك',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+          const Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'ياهلا فيك',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
 
           const SizedBox(height: 8),
 
-          const Text(
-            'منصور البوعينين',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.w700,
+          Align(
+            alignment: Alignment.centerRight,
+            child: StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, authSnapshot) {
+                final user = authSnapshot.data;
+
+                if (user == null) {
+                  return const Text(
+                    'مستخدم',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  );
+                }
+
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const Text(
+                        'مستخدم',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      );
+                    }
+
+                    final data = snapshot.data!.data() as Map<String, dynamic>;
+                    final name = data['name'] ?? 'مستخدم';
+
+                    return Text(
+                      name,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -98,7 +145,7 @@ class HomeScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(9),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(.08),
+              color: Colors.black.withValues(alpha: .08),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -107,7 +154,7 @@ class HomeScreen extends StatelessWidget {
         child: const Row(
           children: [
             Icon(Icons.search, color: Color(0xffC9C9C9), size: 30),
-            Spacer(),
+
             Text(
               'اكتب ماتريد البحث عنه',
               style: TextStyle(
@@ -138,37 +185,60 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Icon(Icons.mail_outline, color: Colors.white, size: 58),
-            const Spacer(),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  'يمكنك مشاركة التطبيق مع أفراد عائلتك',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+
+
+
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+
+                  const Text(
+                    'يمكنك مشاركة التطبيق مع أفراد عائلتك',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  width: 74,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: const Color(0xff4F6499),
-                    borderRadius: BorderRadius.circular(7),
+
+                  const SizedBox(height: 16),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      width: 95,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xff4F6499),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'دعوة',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: const Text(
-                    'دعوة',
-                    style: TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
+            const SizedBox(width: 33),
+            const Icon(
+              Icons.mail_outline,
+              color: Colors.white,
+              size: 60,
+            ),
+
+            const SizedBox(width: 20),
           ],
         ),
       ),
@@ -180,14 +250,24 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          const Icon(Icons.arrow_back_ios, size: 15, color: textColor),
-          const SizedBox(width: 6),
+
+
           Text(
             title,
             style: const TextStyle(
               color: textColor,
               fontSize: 18,
               fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 6),
+          SvgPicture.asset(
+            'assets/icons/back.svg',
+            width: 19,
+            height: 19,
+            colorFilter: const ColorFilter.mode(
+              Color(0xff53617F),
+              BlendMode.srcIn,
             ),
           ),
         ],
@@ -205,11 +285,10 @@ class HomeScreen extends StatelessWidget {
     return SizedBox(
       height: 95,
       child: ListView.separated(
-        reverse: true,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(right: 20),
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_,__) => const SizedBox(width: 10),
         itemBuilder: (_, index) {
           return Container(
             width: 110,
@@ -248,7 +327,6 @@ class HomeScreen extends StatelessWidget {
     return SizedBox(
       height: 250,
       child: ListView.separated(
-        reverse: true,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(right: 20),
         itemCount: 3,
@@ -268,7 +346,7 @@ class HomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(.10),
+                    color: Colors.black.withValues(alpha: .10),
                     blurRadius: 14,
                     offset: const Offset(0, 8),
                   ),
@@ -298,7 +376,7 @@ class HomeScreen extends StatelessWidget {
                     child: const Column(
                       children: [
                         Text(
-                          '2025.11.26 | الرياض | تهاني وتبريكات',
+                          'تهاني وتبريكات | الرياض | 2025.11.26',
                           style: TextStyle(
                             color: textColor,
                             fontSize: 12,
