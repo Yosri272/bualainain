@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'widgets/custom_status_bar.dart';
 import 'widgets/custom_bottom_nav.dart';
 
 class NewsScreen extends StatelessWidget {
@@ -56,12 +55,7 @@ class NewsScreen extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Positioned(
-            top: 18,
-            left: 0,
-            right: 0,
-            child: CustomStatusBar(),
-          ),
+
 
           Positioned(
             right: 24,
@@ -117,7 +111,7 @@ class _NewsCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(11),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(.10),
+              color: Colors.black.withValues(alpha: .10),
               blurRadius: 14,
               offset: const Offset(0, 8),
             ),

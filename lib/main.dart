@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:device_preview/device_preview.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
 
 import 'admin_screen.dart';
 import 'welcome_screen.dart';
@@ -24,6 +25,7 @@ import 'contact_us_screen.dart';
 import 'rate_app_screen.dart';
 import 'terms_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'NotificationSettingsScreen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,11 +34,18 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(
-    DevicePreview(
-      enabled: !kReleaseMode,
-      builder: (context) => const MyApp(),
-    ),
+  await setupFirebaseMessaging();
+
+  runApp(const MyApp());
+}
+
+Future<void> setupFirebaseMessaging() async {
+  final messaging = FirebaseMessaging.instance;
+
+  await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
   );
 }
 
@@ -45,12 +54,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return  MaterialApp(
       debugShowCheckedModeBanner: false,
 
       useInheritedMediaQuery: true,
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
+      locale: const Locale('ar'),
+
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: DevicePreview.appBuilder(
+            context,
+            child,
+          ),
+        );
+      },
 
       theme: ThemeData(
         textTheme: GoogleFonts.ibmPlexSansArabicTextTheme(),
@@ -69,18 +87,17 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/notifications': (context) => const NotificationsScreen(),
+        '/NotificationSettings': (context) => const NotificationSettingsScreen(),
         '/news': (context) => const NewsScreen(),
         '/news-details': (context) => const NewsDetailsScreen(),
         '/add-news': (context) => const AddNewsScreen(),
         '/add-member': (context) => const AddMemberScreen(),
         '/add-category': (context) => const AddCategoryScreen(),
-        '/members-management': (context) =>
-        const MembersManagementScreen(),
+        '/members-management': (context) => const MembersManagementScreen(),
         '/contact-us': (context) => const ContactUsScreen(),
         '/rate-app': (context) => const RateAppScreen(),
         '/terms': (context) => const TermsScreen(),
-        '/privacy-policy': (context) =>
-        const PrivacyPolicyScreen(),
+        '/privacy-policy': (context) => const PrivacyPolicyScreen(),
       },
     );
   }

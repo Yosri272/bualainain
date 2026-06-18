@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'widgets/custom_status_bar.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -122,7 +121,6 @@ class WelcomeScreen extends StatelessWidget {
           fit: BoxFit.cover,
         ),
       ),
-      child: const CustomStatusBar(),
     );
   }
 }

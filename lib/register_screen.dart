@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'widgets/custom_status_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -263,12 +262,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Positioned(
-            top: 28,
-            left: 0,
-            right: 0,
-            child: CustomStatusBar(),
-          ),
+
           Positioned(
             right: 28,
             bottom: -38,
