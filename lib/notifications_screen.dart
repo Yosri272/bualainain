@@ -5,8 +5,8 @@ import 'widgets/custom_bottom_nav.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
-
   static const Color textColor = Color(0xff53617F);
+
   static const Color titleColor = Color(0xff2E3547);
   static const Color blue = Color(0xff5D7FCB);
   static const Color bgColor = Color(0xffF4F6FA);
@@ -19,7 +19,7 @@ class NotificationsScreen extends StatelessWidget {
         backgroundColor: bgColor,
         body: Column(
           children: [
-            _header(context),
+            _header(context, Colors.white),
 
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -98,63 +98,53 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _header(BuildContext context) {
-    return Container(
-      height: 125,
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
+}
+Widget _header(BuildContext context, Color? textColor) {
+  return Container(
+    height: 120,
+    width: double.infinity,
+    decoration: const BoxDecoration(
+      image: DecorationImage(
+        image: AssetImage('assets/images/header_bg.png'),
+        fit: BoxFit.cover,
+      ),
+    ),
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+
+
+        Positioned(
+          right: 24,
+          bottom: -45,
+          child: InkWell(
+            onTap: () {
+              Navigator.pop(context);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 15,
+                  color: textColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'العودة',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-      child: Stack(
-        children: [
-
-
-          const Positioned(
-            left: 24,
-            bottom: 18,
-            child: Text(
-              'الإشعارات',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-
-          Positioned(
-            right: 24,
-            bottom: 22,
-            child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 14,
-                    color: Colors.white,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'العودة',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
 
 class _NotificationItem extends StatelessWidget {

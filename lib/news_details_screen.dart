@@ -105,6 +105,13 @@ class NewsDetailsScreen extends StatelessWidget {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 15,
+                    color: textColor,
+                  ),
+                  SizedBox(width: 6),
+
                   Text(
                     'العودة',
                     style: TextStyle(
@@ -113,12 +120,7 @@ class NewsDetailsScreen extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(width: 6),
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
-                    color: textColor,
-                  ),
+
                 ],
               ),
             ),
