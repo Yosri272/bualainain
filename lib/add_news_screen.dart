@@ -74,8 +74,40 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
 
       if (!mounted) return;
 
-      showMessage('تم إرسال الخبر بنجاح');
-      Navigator.pushReplacementNamed(context, '/admin');
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: const Text(
+              'تم بنجاح',
+              textAlign: TextAlign.right,
+            ),
+            content: const Text(
+              'تم إضافة خبر بنجاح',
+              textAlign: TextAlign.right,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('موافق'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/admin',
+            (route) => false,
+      );
 
     } catch (e) {
       showMessage('خطأ في حفظ الخبر: $e');

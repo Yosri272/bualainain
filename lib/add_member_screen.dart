@@ -1,9 +1,114 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class AddMemberScreen extends StatelessWidget {
+class AddMemberScreen extends StatefulWidget {
   const AddMemberScreen({super.key});
 
   static const Color textColor = Color(0xff53617F);
+
+  @override
+  State<AddMemberScreen> createState() => _AddMemberScreenState();
+}
+
+class _AddMemberScreenState extends State<AddMemberScreen> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
+  final TextEditingController genderController = TextEditingController();
+
+  bool isLoading = false;
+
+  Future<void> saveMember() async {
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
+    final phone = phoneController.text.trim();
+    final city = cityController.text.trim();
+    final gender = genderController.text.trim();
+
+    if (name.isEmpty) {
+      showMessage('الرجاء إدخال اسم العضو');
+      return;
+    }
+
+    try {
+      setState(() => isLoading = true);
+
+      await FirebaseFirestore.instance.collection('members').add({
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'city': city,
+        'gender': gender,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+
+      nameController.clear();
+      emailController.clear();
+      phoneController.clear();
+      cityController.clear();
+      genderController.clear();
+
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: const Text(
+              'تم بنجاح',
+              textAlign: TextAlign.right,
+            ),
+            content: const Text(
+              'تم إضافة العضو بنجاح',
+              textAlign: TextAlign.right,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('موافق'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/admin',
+            (route) => false,
+      );
+    } catch (e) {
+      showMessage('خطأ في إضافة العضو: $e');
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  void showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    cityController.dispose();
+    genderController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +119,8 @@ class AddMemberScreen extends StatelessWidget {
         body: Column(
           children: [
             _header(context),
-            const SizedBox(height: 70),
+
+            const SizedBox(height: 25),
 
             Expanded(
               child: SingleChildScrollView(
@@ -22,7 +128,6 @@ class AddMemberScreen extends StatelessWidget {
                 child: _formCard(),
               ),
             ),
-
           ],
         ),
       ),
@@ -64,13 +169,13 @@ class AddMemberScreen extends StatelessWidget {
                   Icon(
                     Icons.arrow_back_ios_new,
                     size: 15,
-                    color: textColor,
+                    color: AddMemberScreen.textColor,
                   ),
                   SizedBox(width: 6),
                   Text(
                     'العودة',
                     style: TextStyle(
-                      color: textColor,
+                      color: AddMemberScreen.textColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
@@ -83,6 +188,7 @@ class AddMemberScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _formCard() {
     return Container(
       decoration: BoxDecoration(
@@ -113,37 +219,89 @@ class AddMemberScreen extends StatelessWidget {
             padding: const EdgeInsets.all(18),
             child: Column(
               children: [
-                const _InputField(hint: 'الاسم'),
+                _InputField(
+                  controller: nameController,
+                  hint: 'الاسم',
+                ),
+
                 const SizedBox(height: 14),
 
-                const _InputField(
+                _InputField(
+                  controller: emailController,
                   hint: 'البريد الإلكتروني',
                   keyboardType: TextInputType.emailAddress,
                 ),
+
                 const SizedBox(height: 14),
 
-                const _InputField(
+                _InputField(
+                  controller: phoneController,
                   hint: 'الهاتف',
                   keyboardType: TextInputType.phone,
                 ),
+
                 const SizedBox(height: 14),
 
-                const _InputField(hint: 'المدينة'),
+                _InputField(
+                  controller: cityController,
+                  hint: 'المدينة',
+                ),
+
                 const SizedBox(height: 14),
 
-                const _InputField(hint: 'الجنس'),
+                Container(
+                  height: 52,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffF6F6F6),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: DropdownButtonFormField<String>(
+                    value: genderController.text.isEmpty
+                        ? null
+                        : genderController.text,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                    ),
+                    hint: const Text(
+                      'الجنس',
+                      style: TextStyle(
+                        color: AddMemberScreen.textColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'ذكر',
+                        child: Text('ذكر'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'أنثى',
+                        child: Text('أنثى'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      genderController.text = value ?? '';
+                    },
+                  ),
+                ),
                 const SizedBox(height: 22),
 
                 InkWell(
-                  onTap: () {},
+                  onTap: isLoading ? null : saveMember,
                   child: Container(
                     height: 52,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: textColor,
+                      color: AddMemberScreen.textColor,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
+                    child: isLoading
+                        ? const CircularProgressIndicator(
+                      color: Colors.white,
+                    )
+                        : const Text(
                       'إنشاء الحساب',
                       style: TextStyle(
                         color: Colors.white,
@@ -163,10 +321,12 @@ class AddMemberScreen extends StatelessWidget {
 }
 
 class _InputField extends StatelessWidget {
+  final TextEditingController controller;
   final String hint;
   final TextInputType? keyboardType;
 
   const _InputField({
+    required this.controller,
     required this.hint,
     this.keyboardType,
   });
@@ -181,6 +341,7 @@ class _InputField extends StatelessWidget {
         borderRadius: BorderRadius.circular(3),
       ),
       child: TextField(
+        controller: controller,
         keyboardType: keyboardType,
         textAlign: TextAlign.right,
         decoration: InputDecoration(

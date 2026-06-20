@@ -76,14 +76,34 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
 
       if (!mounted) return;
 
-      showMessage('تم حفظ القسم بنجاح');
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: const Text(
+              'تم بنجاح',
+              textAlign: TextAlign.right,
+            ),
+            content: const Text(
+              'تم إضافة القسم بنجاح',
+              textAlign: TextAlign.right,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('موافق'),
+              ),
+            ],
+          );
+        },
+      );
 
-      nameController.clear();
-      descriptionController.clear();
-
-      setState(() {
-        selectedImage = null;
-      });
+      if (!mounted) return;
 
       Navigator.pushNamedAndRemoveUntil(
         context,
