@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
-
 class AddCategoryScreen extends StatefulWidget {
   const AddCategoryScreen({super.key});
 
@@ -18,8 +17,8 @@ class AddCategoryScreen extends StatefulWidget {
 class _AddCategoryScreenState extends State<AddCategoryScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
-  static const Color textColor = Color(0xff53617F);
 
+  static const Color textColor = Color(0xff53617F);
 
   File? selectedImage;
   bool isLoading = false;
@@ -86,7 +85,11 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
         selectedImage = null;
       });
 
-      Navigator.pop(context);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/admin',
+            (route) => false,
+      );
     } catch (e) {
       showMessage('خطأ في حفظ القسم: $e');
     } finally {
@@ -94,6 +97,14 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
         setState(() => isLoading = false);
       }
     }
+  }
+
+  void goToAdmin() {
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/admin',
+          (route) => false,
+    );
   }
 
   void showMessage(String message) {
@@ -143,6 +154,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                           ),
                         ),
                       ),
+
                       Padding(
                         padding: const EdgeInsets.all(18),
                         child: Column(
@@ -151,13 +163,16 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                               controller: nameController,
                               hint: 'اسم القسم',
                             ),
+
                             const SizedBox(height: 14),
+
                             _InputField(
                               controller: descriptionController,
                               hint: 'وصف القسم',
                               maxLines: 4,
                               height: 120,
                             ),
+
                             const SizedBox(height: 18),
 
                             InkWell(
@@ -181,8 +196,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                                     Icon(
                                       Icons.image_outlined,
                                       size: 40,
-                                      color:
-                                      AddCategoryScreen.textColor,
+                                      color: AddCategoryScreen.textColor,
                                     ),
                                     SizedBox(height: 10),
                                     Text(
@@ -244,26 +258,33 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
   }
 
   Widget _header(BuildContext context) {
-    return Container(
-      height: 120,
+    return SizedBox(
+      height: 165,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/header_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
           Positioned(
             right: 24,
-            bottom: -45,
+            top: 142,
             child: InkWell(
               onTap: () {
-                Navigator.pushReplacementNamed(context, '/admin');
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/admin',
+                      (route) => false,
+                );
               },
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -282,8 +303,6 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-
-
                 ],
               ),
             ),
@@ -292,10 +311,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
       ),
     );
   }
-
 }
-
-
 
 class _InputField extends StatelessWidget {
   final TextEditingController controller;

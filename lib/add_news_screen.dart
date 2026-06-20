@@ -18,6 +18,9 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
   final contentController = TextEditingController();
   final cityController = TextEditingController();
   final imageUrlController = TextEditingController();
+  static const Color textColor = Color(0xff53617F);
+
+
 
   String? selectedCategoryId;
   String? selectedCategoryName;
@@ -117,48 +120,52 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
   }
 
   Widget _header(BuildContext context) {
-    return Container(
-      height: 120,
+    return SizedBox(
+      height: 165,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/header_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
           Positioned(
             right: 24,
-            bottom: -45,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            top: 142,
+            child: InkWell(
               onTap: () {
-                Navigator.of(context).pushReplacementNamed('/admin');
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/admin',
+                      (route) => false,
+                );
               },
-              child: const Padding(
-                padding: EdgeInsets.all(12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.arrow_back_ios_new,
-                      size: 15,
-                      color: AddNewsScreen.textColor,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 15,
+                    color: textColor,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'العودة',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                     ),
-                    SizedBox(width: 6),
-                    Text(
-                      'العودة',
-                      style: TextStyle(
-                        color: AddNewsScreen.textColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -166,7 +173,6 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
       ),
     );
   }
-
   Widget _formCard() {
     return Container(
       decoration: BoxDecoration(
