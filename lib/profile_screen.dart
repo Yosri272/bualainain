@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'widgets/custom_bottom_nav.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -155,6 +156,52 @@ class ProfileScreen extends StatelessWidget {
                         BlendMode.srcIn,
                       ),
                     ),
+                    onTap: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            title: const Text(
+                              'تسجيل الخروج',
+                              textAlign: TextAlign.right,
+                            ),
+                            content: const Text(
+                              'هل أنت متأكد من رغبتك في تسجيل الخروج؟',
+                              textAlign: TextAlign.right,
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context, false);
+                                },
+                                child: const Text('إلغاء'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(context, true);
+                                },
+                                child: const Text('خروج'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+
+                      if (confirm == true) {
+                        await FirebaseAuth.instance.signOut();
+
+                        if (context.mounted) {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/login',
+                                (route) => false,
+                          );
+                        }
+                      }
+                    },
                   ),
                 ],
               ),
