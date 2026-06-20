@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'widgets/custom_bottom_nav.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class AdminScreen extends StatefulWidget {
@@ -109,8 +108,6 @@ class _AdminScreenState extends State<AdminScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    _statsCard(),
-                    const SizedBox(height: 24),
                     _adminCard(context),
                     const SizedBox(height: 24),
                     _notificationsCard(),
@@ -118,7 +115,6 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
               ),
             ),
-            const CustomBottomNav(selectedIndex: 3),
           ],
         ),
       ),
@@ -170,35 +166,6 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Widget _statsCard() {
-    return _SectionCard(
-      title: 'إحصائيات التطبيق',
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _StatBox(
-              title: 'المستخدمين',
-              stream: countStream('users'),
-            ),
-            _StatBox(
-              title: 'الأخبار',
-              stream: countStream('news'),
-            ),
-            _StatBox(
-              title: 'الأعضاء',
-              stream: countStream('members'),
-            ),
-            _StatBox(
-              title: 'الأقسام',
-              stream: countStream('categories'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _adminCard(BuildContext context) {
     return _SectionCard(

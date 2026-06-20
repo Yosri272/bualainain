@@ -54,12 +54,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'phone': phoneController.text.trim(),
         'email': emailController.text.trim(),
         'role': 'user',
+        'status': 'pending', // pending - approved - rejected
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
 
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/SuccessScreen');
     } on FirebaseAuthException catch (e) {
       String message = 'حدث خطأ أثناء إنشاء الحساب';
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'widgets/custom_bottom_nav.dart';
 
 class AddMemberScreen extends StatelessWidget {
   const AddMemberScreen({super.key});
@@ -24,7 +23,6 @@ class AddMemberScreen extends StatelessWidget {
               ),
             ),
 
-            const CustomBottomNav(selectedIndex: 3),
           ],
         ),
       ),

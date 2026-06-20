@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'widgets/custom_bottom_nav.dart';
 
 class AddNewsScreen extends StatefulWidget {
   const AddNewsScreen({super.key});
@@ -62,16 +61,21 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'title': title,
+        'body': content,
+        'type': 'news',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
       if (!mounted) return;
 
       showMessage('تم إرسال الخبر بنجاح');
       Navigator.pushReplacementNamed(context, '/admin');
+
     } catch (e) {
       showMessage('خطأ في حفظ الخبر: $e');
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
     }
   }
 
@@ -106,7 +110,6 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
                 child: _formCard(),
               ),
             ),
-            const CustomBottomNav(selectedIndex: 1),
           ],
         ),
       ),

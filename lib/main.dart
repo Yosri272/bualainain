@@ -3,6 +3,7 @@ import 'package:device_preview/device_preview.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'PendingApprovalScreen.dart';
 import 'firebase_options.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -26,6 +27,8 @@ import 'rate_app_screen.dart';
 import 'terms_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'NotificationSettingsScreen.dart';
+import 'SuccessScreen.dart';
+import 'RejectedAccountScreen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -98,6 +101,9 @@ class MyApp extends StatelessWidget {
         '/rate-app': (context) => const RateAppScreen(),
         '/terms': (context) => const TermsScreen(),
         '/privacy-policy': (context) => const PrivacyPolicyScreen(),
+        '/SuccessScreen': (context) => const SuccessScreen(),
+        '/pending-approval': (_) => const PendingApprovalScreen(),
+        '/rejected-account': (_) => const RejectedAccountScreen(),
       },
     );
   }

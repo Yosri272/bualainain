@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'widgets/custom_bottom_nav.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MembersManagementScreen extends StatelessWidget {
   const MembersManagementScreen({super.key});
@@ -10,15 +10,6 @@ class MembersManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final members = [
-      ['فهد الحربي', '050277XXXX'],
-      ['احمد القحطاني', '050277XXXX'],
-      ['يوسف عبدالله', '050277XXXX'],
-      ['خالد الحامدي', '050277XXXX'],
-      ['فواز العتيبي', '050277XXXX'],
-      ['وليد الصراف', '050277XXXX'],
-    ];
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -29,63 +20,75 @@ class MembersManagementScreen extends StatelessWidget {
             const SizedBox(height: 70),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: const Color(0xffE6E6E6)),
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: .05),
-                        blurRadius: 12,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 58,
-                        width: double.infinity,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                        color: const Color(0xffF8F8F8),
-                        child: const Text(
-                          'إدارة الأعضاء',
-                          style: TextStyle(
-                            color: Color(0xff222222),
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .where('status', isEqualTo: 'pending')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 20, 14, 22),
+                  if (!snapshot.hasData ||
+                      snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'لا يوجد أعضاء بانتظار المراجعة',
+                      ),
+                    );
+                  }
+
+                  final users = snapshot.data!.docs;
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(
+                          color: const Color(0xffE6E6E6),
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(.05),
+                            blurRadius: 12,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
                         child: Column(
                           children: [
                             const _TableHeader(),
                             const SizedBox(height: 14),
 
-                            ...members.map(
-                                  (member) => _MemberRow(
-                                name: member[0],
-                                phone: member[1],
-                              ),
-                            ),
+                            ...users.map((doc) {
+                              final data = doc.data()
+                              as Map<String, dynamic>;
+
+                              return _MemberRow(
+                                docId: doc.id,
+                                name: data['name'] ?? '',
+                                phone: data['phone'] ?? '',
+                              );
+                            }),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
 
-            const CustomBottomNav(selectedIndex: 3),
           ],
         ),
       ),
@@ -98,23 +101,28 @@ class MembersManagementScreen extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
+          image: AssetImage(
+            'assets/images/header_bg.png',
+          ),
           fit: BoxFit.cover,
         ),
       ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-
-
           Positioned(
             right: 24,
             bottom: -45,
             child: InkWell(
               onTap: () => Navigator.pop(context),
               child: const Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
+                  Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 15,
+                    color: textColor,
+                  ),
+                  SizedBox(width: 6),
                   Text(
                     'العودة',
                     style: TextStyle(
@@ -123,12 +131,8 @@ class MembersManagementScreen extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(width: 6),
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
-                    color: textColor,
-                  ),
+
+
                 ],
               ),
             ),
@@ -151,7 +155,6 @@ class _TableHeader extends StatelessWidget {
           child: Text(
             'الاسم',
             textAlign: TextAlign.right,
-            style: _headerStyle,
           ),
         ),
         Expanded(
@@ -159,23 +162,20 @@ class _TableHeader extends StatelessWidget {
           child: Text(
             'رقم الجوال',
             textAlign: TextAlign.center,
-            style: _headerStyle,
           ),
         ),
         Expanded(
           flex: 2,
           child: Text(
-            'إجراء القبول',
+            'قبول',
             textAlign: TextAlign.center,
-            style: _headerStyle,
           ),
         ),
         Expanded(
           flex: 2,
           child: Text(
-            'إجراء الرفض',
+            'رفض',
             textAlign: TextAlign.center,
-            style: _headerStyle,
           ),
         ),
       ],
@@ -184,24 +184,38 @@ class _TableHeader extends StatelessWidget {
 }
 
 class _MemberRow extends StatelessWidget {
+  final String docId;
   final String name;
   final String phone;
 
   const _MemberRow({
+    required this.docId,
     required this.name,
     required this.phone,
   });
 
-  static const TextStyle rowStyle = TextStyle(
-    color: MembersManagementScreen.textColor,
-    fontSize: 13,
-    fontWeight: FontWeight.w700,
-  );
+  Future<void> approveUser() async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(docId)
+        .update({
+      'status': 'approved',
+    });
+  }
+
+  Future<void> rejectUser() async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(docId)
+        .update({
+      'status': 'rejected',
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 34,
+      height: 45,
       child: Row(
         children: [
           Expanded(
@@ -209,7 +223,6 @@ class _MemberRow extends StatelessWidget {
             child: Text(
               name,
               textAlign: TextAlign.right,
-              style: rowStyle,
             ),
           ),
           Expanded(
@@ -217,30 +230,33 @@ class _MemberRow extends StatelessWidget {
             child: Text(
               phone,
               textAlign: TextAlign.center,
-              style: rowStyle,
             ),
           ),
-          const Expanded(
+          Expanded(
             flex: 2,
-            child: Text(
-              'قبول',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: MembersManagementScreen.greenColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
+            child: InkWell(
+              onTap: approveUser,
+              child: const Text(
+                'قبول',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
-          const Expanded(
+          Expanded(
             flex: 2,
-            child: Text(
-              'رفض',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: MembersManagementScreen.grayColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+            child: InkWell(
+              onTap: rejectUser,
+              child: const Text(
+                'رفض',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -249,9 +265,3 @@ class _MemberRow extends StatelessWidget {
     );
   }
 }
-
-const TextStyle _headerStyle = TextStyle(
-  color: Color(0xff222222),
-  fontSize: 13,
-  fontWeight: FontWeight.w800,
-);

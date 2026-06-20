@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'widgets/custom_bottom_nav.dart';
 
 class AddCategoryScreen extends StatefulWidget {
   const AddCategoryScreen({super.key});
@@ -19,6 +18,8 @@ class AddCategoryScreen extends StatefulWidget {
 class _AddCategoryScreenState extends State<AddCategoryScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+  static const Color textColor = Color(0xff53617F);
+
 
   File? selectedImage;
   bool isLoading = false;
@@ -236,7 +237,6 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                 ),
               ),
             ),
-            const CustomBottomNav(selectedIndex: 3),
           ],
         ),
       ),
@@ -257,27 +257,33 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
         clipBehavior: Clip.none,
         children: [
 
+
           Positioned(
             right: 24,
             bottom: -45,
             child: InkWell(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/admin');
+              },
               child: const Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.arrow_back_ios_new,
                     size: 15,
-                    color: AddCategoryScreen.textColor,
+                    color: textColor,
                   ),
                   SizedBox(width: 6),
                   Text(
                     'العودة',
                     style: TextStyle(
-                      color: AddCategoryScreen.textColor,
+                      color: textColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+
+
                 ],
               ),
             ),
@@ -286,7 +292,10 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
       ),
     );
   }
+
 }
+
+
 
 class _InputField extends StatelessWidget {
   final TextEditingController controller;

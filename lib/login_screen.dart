@@ -42,13 +42,35 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final userData = result.docs.first.data();
       final String role = userData['role'] ?? 'user';
-
-      if (!mounted) return;
+      final String status = userData['status'] ?? 'pending';
 
       if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/admin');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
+        return;
+      }
+
+      if (status == 'pending') {
+        Navigator.pushReplacementNamed(
+          context,
+          '/pending-approval',
+        );
+        return;
+      }
+
+      if (status == 'rejected') {
+        Navigator.pushReplacementNamed(
+          context,
+          '/rejected-account',
+        );
+        return;
+      }
+
+      if (status == 'approved') {
+        Navigator.pushReplacementNamed(
+          context,
+          '/otp',
+        );
+        return;
       }
     } catch (e) {
       showMessage('حدث خطأ أثناء تسجيل الدخول');
