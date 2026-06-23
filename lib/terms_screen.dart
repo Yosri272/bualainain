@@ -89,24 +89,34 @@ class TermsScreen extends StatelessWidget {
   }
 
   Widget _header(BuildContext context) {
-    return Container(
-      height: 120,
+    return SizedBox(
+      height: 165,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/header_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
           Positioned(
             right: 24,
-            bottom: -45,
+            top: 142,
             child: InkWell(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/profile',
+                      (route) => false,
+                );
+              },
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -124,8 +134,6 @@ class TermsScreen extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-
-
                 ],
               ),
             ),

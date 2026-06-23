@@ -34,49 +34,61 @@ class ContactUsScreen extends StatelessWidget {
   }
 
   Widget _header(BuildContext context) {
-    return Container(
-      height: 120,
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-
-          Positioned(
-            right: 24,
-            bottom: -45,
-            child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'العودة',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(width: 6),
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
-                    color: textColor,
-                  ),
-                ],
+      return SizedBox(
+        height: 165,
+        width: double.infinity,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              height: 120,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/header_bg.png'),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+
+            Positioned(
+              right: 24,
+              top: 142,
+              child: InkWell(
+                onTap: () {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/profile',
+                        (route) => false,
+                  );
+                },
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 15,
+                      color: textColor,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'العودة',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
+
 
   Widget _contactCard() {
     return Container(
@@ -141,8 +153,11 @@ class ContactUsScreen extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(4),
-                    gradient: const LinearGradient(
-                      colors: [mint, blue],
+                    gradient: LinearGradient(
+                      colors: [
+                        ContactUsScreen.mint,
+                        ContactUsScreen.blue,
+                      ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -177,7 +192,7 @@ class ContactUsScreen extends StatelessWidget {
       ),
     );
   }
-}
+
 
 class _InputField extends StatelessWidget {
   final String hint;
