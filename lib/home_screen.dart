@@ -3,6 +3,8 @@ import 'widgets/custom_bottom_nav.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
+import 'dart:ui' as ui;
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -14,7 +16,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(
@@ -400,6 +402,12 @@ class HomeScreen extends StatelessWidget {
 
               final imageUrl = data['imageUrl'] ?? '';
 
+              final Timestamp? createdAt = data['createdAt'];
+
+              final String formattedDate = createdAt != null
+                  ? DateFormat('d MMMM yyyy', 'ar').format(createdAt.toDate())
+                  : '';
+
               return InkWell(
                 onTap: () {
                   Navigator.pushNamed(
@@ -458,7 +466,7 @@ class HomeScreen extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              '${data['categoryName'] ?? ''} | ${data['city'] ?? ''}',
+                              '${data['categoryName'] ?? ''} | ${data['city'] ?? ''} | $formattedDate',
                               style: const TextStyle(
                                 color: textColor,
                                 fontSize: 12,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'widgets/custom_bottom_nav.dart';
+import 'package:intl/intl.dart';
+import 'dart:ui' as ui;
 
 class NewsScreen extends StatelessWidget {
   const NewsScreen({super.key});
@@ -12,7 +14,7 @@ class NewsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(
@@ -62,6 +64,12 @@ class NewsScreen extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(height: 18),
                     itemBuilder: (context, index) {
                       final data = news[index].data() as Map<String, dynamic>;
+                      final Timestamp? createdAt = data['createdAt'];
+
+                      final String formattedDate = createdAt != null
+                          ? DateFormat('d MMMM yyyy', 'ar')
+                          .format(createdAt.toDate())
+                          : '';
 
                       return _NewsCard(
                         title: data['title'] ?? '',
@@ -69,6 +77,7 @@ class NewsScreen extends StatelessWidget {
                         categoryName: data['categoryName'] ?? '',
                         city: data['city'] ?? '',
                         imageUrl: data['imageUrl'] ?? '',
+                        date: formattedDate,
                         onTap: () {
                           Navigator.pushNamed(
                             context,
@@ -141,6 +150,7 @@ class _NewsCard extends StatelessWidget {
   final String categoryName;
   final String city;
   final String imageUrl;
+  final String date;
   final VoidCallback onTap;
 
   const _NewsCard({
@@ -148,6 +158,7 @@ class _NewsCard extends StatelessWidget {
     required this.content,
     required this.categoryName,
     required this.city,
+    required this.date,
     required this.imageUrl,
     required this.onTap,
   });
@@ -210,7 +221,7 @@ class _NewsCard extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    '$categoryName  |  $city',
+                    '$categoryName | $city | $date',
                     style: const TextStyle(
                       color: textColor,
                       fontSize: 12,
