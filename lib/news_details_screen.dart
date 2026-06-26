@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'widgets/custom_bottom_nav.dart';
+import 'package:intl/intl.dart';
+import 'dart:ui' as ui;
 
 class NewsDetailsScreen extends StatelessWidget {
   const NewsDetailsScreen({super.key});
 
   static const Color textColor = Color(0xff53617F);
 
+
+
   @override
   Widget build(BuildContext context) {
+    final newsId = ModalRoute.of(context)?.settings.arguments as String?;
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(
@@ -19,60 +25,118 @@ class NewsDetailsScreen extends StatelessWidget {
             const SizedBox(height: 55),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(
-                        'assets/images/news.png',
-                        height: 255,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
+              child: newsId == null
+                  ? const Center(child: Text('لم يتم العثور على الخبر'))
+                  : FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('news')
+                    .doc(newsId)
+                    .get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        snapshot.error.toString(),
+                        textAlign: TextAlign.center,
                       ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return const Center(
+                      child: Text('الخبر غير موجود'),
+                    );
+                  }
+
+                  final data =
+                  snapshot.data!.data() as Map<String, dynamic>;
+                  final Timestamp? createdAt = data['createdAt'];
+                  final String formattedDate = createdAt != null
+                      ? DateFormat('d MMMM yyyy', 'ar')
+                      .format(createdAt.toDate())
+                      : '';
+                  final imageUrl = data['imageUrl'] ?? '';
+                  final categoryName = data['categoryName'] ?? '';
+                  final city = data['city'] ?? '';
+                  final title = data['title'] ?? '';
+                  final content = data['content'] ?? '';
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: SizedBox(
+                            height: 255,
+                            width: double.infinity,
+                            child: imageUrl.toString().isNotEmpty
+                                ? Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+
+                              errorBuilder: (_, __, ___) {
+                                return Image.asset(
+                                  'assets/images/news.png',
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            )
+                                : Image.asset(
+                              'assets/images/news.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 22),
+
+                        Text(
+                          '$categoryName | $city | $formattedDate',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Color(0xff9A9A9A),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        Text(
+                          title,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: textColor,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            height: 1.5,
+                          ),
+                        ),
+
+                        const SizedBox(height: 22),
+
+                        Text(
+                          content,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Color(0xff222222),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            height: 1.9,
+                          ),
+                        ),
+                      ],
                     ),
-
-                    const SizedBox(height: 22),
-
-                    const Text(
-                      'تهاني وتبريكات  |  الرياض  |  2025.11.26',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: Color(0xff9A9A9A),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    const Text(
-                      'تهنئة للشاب خالد بن سعد البوعينين بمناسبة زفافه',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        height: 1.5,
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    const Text(
-                      'نبارك من أعماق قلوبنا للشاب خالد بن سعد البوعينين بمناسبة زفافه السعيد، ونتمنى له حياة مليئة بالسعادة والنجاح، وأن تكون أيامه القادمة مليئة بالحب والفرح، وأن يحقق كل أحلامه وطموحاته مع شريكته في الحياة.',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: Color(0xff222222),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        height: 1.9,
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
 
@@ -96,7 +160,6 @@ class NewsDetailsScreen extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-
           Positioned(
             right: 28,
             bottom: -38,
@@ -111,7 +174,6 @@ class NewsDetailsScreen extends StatelessWidget {
                     color: textColor,
                   ),
                   SizedBox(width: 6),
-
                   Text(
                     'العودة',
                     style: TextStyle(
@@ -120,7 +182,6 @@ class NewsDetailsScreen extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -129,4 +190,5 @@ class NewsDetailsScreen extends StatelessWidget {
       ),
     );
   }
+
 }

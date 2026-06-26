@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'widgets/custom_bottom_nav.dart';
 
 class NewsScreen extends StatelessWidget {
@@ -21,14 +22,61 @@ class NewsScreen extends StatelessWidget {
             const SizedBox(height: 44),
 
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                itemCount: 6,
-                separatorBuilder: (_, __) => const SizedBox(height: 18),
-                itemBuilder: (context, index) {
-                  return _NewsCard(
-                    onTap: () {
-                      Navigator.pushNamed(context, '/news-details');
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('news')
+                    .where('isPublished', isEqualTo: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        snapshot.error.toString(),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'لا توجد أخبار',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final news = snapshot.data!.docs;
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    itemCount: news.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 18),
+                    itemBuilder: (context, index) {
+                      final data = news[index].data() as Map<String, dynamic>;
+
+                      return _NewsCard(
+                        title: data['title'] ?? '',
+                        content: data['content'] ?? '',
+                        categoryName: data['categoryName'] ?? '',
+                        city: data['city'] ?? '',
+                        imageUrl: data['imageUrl'] ?? '',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/news-details',
+                            arguments: news[index].id,
+                          );
+                        },
+                      );
                     },
                   );
                 },
@@ -55,8 +103,6 @@ class NewsScreen extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-
-
           Positioned(
             right: 24,
             bottom: -35,
@@ -79,7 +125,6 @@ class NewsScreen extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -91,9 +136,19 @@ class NewsScreen extends StatelessWidget {
 }
 
 class _NewsCard extends StatelessWidget {
+  final String title;
+  final String content;
+  final String categoryName;
+  final String city;
+  final String imageUrl;
   final VoidCallback onTap;
 
   const _NewsCard({
+    required this.title,
+    required this.content,
+    required this.categoryName,
+    required this.city,
+    required this.imageUrl,
     required this.onTap,
   });
 
@@ -112,7 +167,7 @@ class _NewsCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(11),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: .10),
+              color: Colors.black.withOpacity(.10),
               blurRadius: 14,
               offset: const Offset(0, 8),
             ),
@@ -121,12 +176,26 @@ class _NewsCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Column(
           children: [
-            Image.asset(
-              'assets/images/news.png',
+            SizedBox(
               height: 200,
               width: double.infinity,
-              fit: BoxFit.cover,
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) {
+                  return Image.asset(
+                    'assets/images/news.png',
+                    fit: BoxFit.cover,
+                  );
+                },
+              )
+                  : Image.asset(
+                'assets/images/news.png',
+                fit: BoxFit.cover,
+              ),
             ),
+
             Container(
               height: 85,
               width: double.infinity,
@@ -138,26 +207,32 @@ class _NewsCard extends StatelessWidget {
                   end: Alignment.bottomCenter,
                 ),
               ),
-              child: const Column(
+              child: Column(
                 children: [
                   Text(
-                    'تهاني وتبريكات  |  الرياض  |  2025.11.26',
-                    style: TextStyle(
+                    '$categoryName  |  $city',
+                    style: const TextStyle(
                       color: textColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 9),
+
+                  const SizedBox(height: 9),
+
                   Text(
-                    'تهنئة للشاب خالد بن سعد البوعينين بمناسبة زفافه',
+                    title.isNotEmpty ? title : content,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
                       height: 1.4,
                       fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

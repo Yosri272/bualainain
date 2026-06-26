@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'PendingApprovalScreen.dart';
 import 'firebase_options.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 
 import 'admin_screen.dart';
@@ -32,6 +33,7 @@ import 'RejectedAccountScreen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ar');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

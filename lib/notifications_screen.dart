@@ -81,9 +81,11 @@ class NotificationsScreen extends StatelessWidget {
                       notifications[index].data() as Map<String, dynamic>;
 
                       return _NotificationItem(
+                        id: notifications[index].id,
                         title: data['title'] ?? 'إشعار جديد',
                         body: data['body'] ?? '',
                         type: data['type'] ?? '',
+                        isRead: data['isRead'] ?? false,
                       );
                     },
                   );
@@ -148,14 +150,19 @@ Widget _header(BuildContext context, Color? textColor) {
 }
 
 class _NotificationItem extends StatelessWidget {
+  final String id;
   final String title;
   final String body;
   final String type;
+  final bool isRead;
 
   const _NotificationItem({
+    super.key,
+    required this.id,
     required this.title,
     required this.body,
     required this.type,
+    required this.isRead,
   });
 
   IconData get _icon {
@@ -174,12 +181,25 @@ class _NotificationItem extends StatelessWidget {
     return 'إشعار جديد';
   }
 
+  Future<void> _markAsRead() async {
+    await FirebaseFirestore.instance
+        .collection('notifications')
+        .doc(id)
+        .update({
+      'isRead': true,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: isRead ? Colors.white : const Color(0xffF7F9FF),
       child: InkWell(
-        onTap: () {},
+        onTap: () async {
+          if (!isRead) {
+            await _markAsRead();
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -217,8 +237,10 @@ class _NotificationItem extends StatelessWidget {
 
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: NotificationsScreen.titleColor,
+                      style: TextStyle(
+                        color: isRead
+                            ? Colors.grey
+                            : NotificationsScreen.titleColor,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                         height: 1.35,
@@ -229,8 +251,10 @@ class _NotificationItem extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         body,
-                        style: const TextStyle(
-                          color: NotificationsScreen.textColor,
+                        style: TextStyle(
+                          color: isRead
+                              ? Colors.grey
+                              : NotificationsScreen.textColor,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           height: 1.45,
@@ -252,15 +276,16 @@ class _NotificationItem extends StatelessWidget {
                 ),
               ),
 
-              Container(
-                width: 9,
-                height: 9,
-                margin: const EdgeInsets.only(top: 7),
-                decoration: const BoxDecoration(
-                  color: NotificationsScreen.blue,
-                  shape: BoxShape.circle,
+              if (!isRead)
+                Container(
+                  width: 9,
+                  height: 9,
+                  margin: const EdgeInsets.only(top: 7),
+                  decoration: const BoxDecoration(
+                    color: NotificationsScreen.blue,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
