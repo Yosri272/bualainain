@@ -116,7 +116,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       'حساب جديد',
                       style: TextStyle(
                         color: RegisterScreen.textColor,
-                        fontSize: 26,
+                        fontSize: 32,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -223,21 +223,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 38),
-                    const _OrDivider(),
-                    const SizedBox(height: 35),
 
-                    const _SocialButton(
-                      text: 'الدخول عن طريق قوقل',
-                      assetPath: 'assets/icons/icons_google.svg',
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    const _SocialButton(
-                      text: 'الدخول عن طريق ابل',
-                      assetPath: 'assets/icons/icons_apple.svg',
-                    ),
 
                     const SizedBox(height: 30),
                   ],
@@ -251,40 +237,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _header(BuildContext context) {
-    return Container(
-      height: 135,
+    return SizedBox(
+      height: 165,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/header_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
           Positioned(
-            right: 28,
-            bottom: -38,
+            right: 24,
+            top: 142,
             child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: const Row(
+              onTap: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/welcome',
+                      (route) => false,
+                );
+              },
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'العودة',
-                    style: TextStyle(
-                      color: RegisterScreen.textColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(width: 6),
                   Icon(
                     Icons.arrow_back_ios_new,
-                    color: RegisterScreen.textColor,
                     size: 15,
+                    color: RegisterScreen.textColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'العودة',
+                    style: const TextStyle(
+                      color: RegisterScreen.textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -294,8 +290,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-}
 
+}
 class _InputBox extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -304,6 +300,7 @@ class _InputBox extends StatelessWidget {
   final TextInputType? keyboardType;
 
   const _InputBox({
+    super.key,
     required this.controller,
     required this.hint,
     required this.icon,
@@ -314,43 +311,52 @@ class _InputBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 22),
       decoration: BoxDecoration(
-        color: const Color(0xffF6F6F6),
-        borderRadius: BorderRadius.circular(3),
+        color: const Color(0xffF7F7F7),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: RegisterScreen.textColor,
-            size: 25,
-          ),
-          const SizedBox(width: 14),
+          // النص في أقصى اليمين
           Expanded(
             child: TextField(
               controller: controller,
-              obscureText: obscureText,
               keyboardType: keyboardType,
+              obscureText: obscureText,
               textAlign: TextAlign.right,
+              textDirection: TextDirection.rtl,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: RegisterScreen.textColor,
+              ),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: hint,
                 hintStyle: const TextStyle(
                   color: RegisterScreen.textColor,
-                  fontSize: 21,
+                  fontSize: 22,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
+          ),
+
+          const SizedBox(width: 18),
+
+          // الأيقونة في أقصى اليسار
+          Icon(
+            icon,
+            size: 32,
+            color: RegisterScreen.textColor,
           ),
         ],
       ),
     );
   }
 }
-
 class _OrDivider extends StatelessWidget {
   const _OrDivider();
 
