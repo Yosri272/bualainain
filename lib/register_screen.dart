@@ -138,37 +138,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hint: 'الإسم الثاني',
                       icon: SvgPicture.asset(
                         'assets/icons/Profile.svg',
-                        width: 22,
-                        height: 22,
+                        width: 20,
+                        height: 20,
                         colorFilter: const ColorFilter.mode(
                           RegisterScreen.textColor,
                           BlendMode.srcIn,
                         ),
                       ),                    ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
 
                     _InputBox(
                       controller: phoneController,
                       hint: 'رقم الجوال',
                       icon: SvgPicture.asset(
                         'assets/icons/Call.svg',
-                        width: 22,
-                        height: 22,
+                        width: 20,
+                        height: 20,
                         colorFilter: const ColorFilter.mode(
                           RegisterScreen.textColor,
                           BlendMode.srcIn,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
 
                     _InputBox(
                       controller: emailController,
                       hint: 'البريد الإلكتروني',
                       icon: SvgPicture.asset(
-                        'assets/icons/Call.svg',
-                        width: 22,
-                        height: 22,
+                        'assets/icons/mail.svg',
+                        width: 20,
+                        height: 20,
                         colorFilter: const ColorFilter.mode(
                           RegisterScreen.textColor,
                           BlendMode.srcIn,
@@ -176,15 +176,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       keyboardType: TextInputType.emailAddress,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
 
                     _InputBox(
                       controller: passwordController,
                       hint: 'كلمة المرور',
                       icon: SvgPicture.asset(
-                        'assets/icons/Call.svg',
-                        width: 22,
-                        height: 22,
+                        'assets/icons/lock.svg',
+                        width: 20,
+                        height: 20,
                         colorFilter: const ColorFilter.mode(
                           RegisterScreen.textColor,
                           BlendMode.srcIn,
@@ -192,7 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       obscureText: true,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
 
                     Row(
                       children: [
@@ -326,7 +326,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 class _InputBox extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
-  final SvgPicture icon;
+  final Widget icon;
   final bool obscureText;
   final TextInputType? keyboardType;
 
@@ -342,15 +342,14 @@ class _InputBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 22),
+      height: 58, // بدلاً من 72
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(
         color: const Color(0xffF7F7F7),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          // النص في أقصى اليمين
           Expanded(
             child: TextField(
               controller: controller,
@@ -359,27 +358,28 @@ class _InputBox extends StatelessWidget {
               textAlign: TextAlign.right,
               textDirection: TextDirection.rtl,
               style: const TextStyle(
-                fontSize: 22,
+                fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: RegisterScreen.textColor,
               ),
               decoration: InputDecoration(
                 border: InputBorder.none,
+                isCollapsed: true, // يقلل الارتفاع
                 hintText: hint,
                 hintStyle: const TextStyle(
                   color: RegisterScreen.textColor,
-                  fontSize: 22,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
           ),
 
-          const SizedBox(width: 18),
+          const SizedBox(width: 12),
 
-          // الأيقونة في أقصى اليسار
-          Padding(
-            padding: const EdgeInsets.all(25),
+          SizedBox(
+            width: 22,
+            height: 22,
             child: icon,
           ),
         ],
@@ -387,4 +387,3 @@ class _InputBox extends StatelessWidget {
     );
   }
 }
-
