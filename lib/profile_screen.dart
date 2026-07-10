@@ -57,6 +57,9 @@ class ProfileScreen extends StatelessWidget {
                         BlendMode.srcIn,
                       ),
                     ),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/edit-profile');
+                    },
                   ),
                   _ProfileItem(
                     title: 'إدارة التنبيهات',

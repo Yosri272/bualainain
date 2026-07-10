@@ -16,8 +16,8 @@ class WelcomeScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         body: Center(
           child: Container(
-            width: 393,
-            height: 852,
+            width: double.infinity,
+            height: double.infinity,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
@@ -109,17 +109,25 @@ class WelcomeScreen extends StatelessWidget {
       ),
     );
   }
-
   Widget _header() {
-    return Container(
-      height: 145,
+    return SizedBox(
+      height: 165,
       width: double.infinity,
-      padding: const EdgeInsets.only(top: 28),
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/header_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+        ],
       ),
     );
   }

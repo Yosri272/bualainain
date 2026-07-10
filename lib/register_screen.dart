@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -135,22 +136,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     _InputBox(
                       controller: nameController,
                       hint: 'الإسم الثاني',
-                      icon: Icons.person_outline,
-                    ),
+                      icon: SvgPicture.asset(
+                        'assets/icons/Profile.svg',
+                        width: 22,
+                        height: 22,
+                        colorFilter: const ColorFilter.mode(
+                          RegisterScreen.textColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),                    ),
                     const SizedBox(height: 18),
 
                     _InputBox(
                       controller: phoneController,
                       hint: 'رقم الجوال',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
+                      icon: SvgPicture.asset(
+                        'assets/icons/Call.svg',
+                        width: 22,
+                        height: 22,
+                        colorFilter: const ColorFilter.mode(
+                          RegisterScreen.textColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 18),
 
                     _InputBox(
                       controller: emailController,
                       hint: 'البريد الإلكتروني',
-                      icon: Icons.email_outlined,
+                      icon: SvgPicture.asset(
+                        'assets/icons/Call.svg',
+                        width: 22,
+                        height: 22,
+                        colorFilter: const ColorFilter.mode(
+                          RegisterScreen.textColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 18),
@@ -158,7 +181,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     _InputBox(
                       controller: passwordController,
                       hint: 'كلمة المرور',
-                      icon: Icons.lock_outline,
+                      icon: SvgPicture.asset(
+                        'assets/icons/Call.svg',
+                        width: 22,
+                        height: 22,
+                        colorFilter: const ColorFilter.mode(
+                          RegisterScreen.textColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
                       obscureText: true,
                     ),
                     const SizedBox(height: 18),
@@ -295,7 +326,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 class _InputBox extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
-  final IconData icon;
+  final SvgPicture icon;
   final bool obscureText;
   final TextInputType? keyboardType;
 
@@ -347,78 +378,13 @@ class _InputBox extends StatelessWidget {
           const SizedBox(width: 18),
 
           // الأيقونة في أقصى اليسار
-          Icon(
-            icon,
-            size: 32,
-            color: RegisterScreen.textColor,
+          Padding(
+            padding: const EdgeInsets.all(25),
+            child: icon,
           ),
         ],
       ),
     );
   }
 }
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
 
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Expanded(child: Divider(color: Color(0xffEEEEEE))),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18),
-          child: Text(
-            'أو',
-            style: TextStyle(
-              color: RegisterScreen.grayText,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        Expanded(child: Divider(color: Color(0xffEEEEEE))),
-      ],
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  final String text;
-  final String assetPath;
-
-  const _SocialButton({
-    required this.text,
-    required this.assetPath,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 58,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xffDDDDDD)),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            assetPath,
-            height: 24,
-            width: 24,
-          ),
-          const SizedBox(width: 18),
-          Text(
-            text,
-            style: const TextStyle(
-              color: RegisterScreen.textColor,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

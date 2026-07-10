@@ -172,10 +172,12 @@ class _AdminScreenState extends State<AdminScreen> {
       title: 'إدارة التطبيق',
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          alignment: WrapAlignment.spaceBetween,
           children: [
-            _AdminButton(
+            SizedBox(width: 68, child: _AdminButton(
               title: 'إضافة عضو',
               icon: SvgPicture.asset(
                 'assets/icons/Profile.svg',
@@ -189,8 +191,9 @@ class _AdminScreenState extends State<AdminScreen> {
               onTap: () {
                 Navigator.pushNamed(context, '/add-member');
               },
-            ),
-            _AdminButton(
+            )),
+
+            SizedBox(width: 68, child: _AdminButton(
               title: 'إضافة خبر',
               icon: SvgPicture.asset(
                 'assets/icons/book-reader.svg',
@@ -204,8 +207,9 @@ class _AdminScreenState extends State<AdminScreen> {
               onTap: () {
                 Navigator.pushNamed(context, '/add-news');
               },
-            ),
-            _AdminButton(
+            )),
+
+            SizedBox(width: 68, child: _AdminButton(
               title: 'إدارة الأعضاء',
               icon: SvgPicture.asset(
                 'assets/icons/Profile.svg',
@@ -219,8 +223,9 @@ class _AdminScreenState extends State<AdminScreen> {
               onTap: () {
                 Navigator.pushNamed(context, '/members-management');
               },
-            ),
-            _AdminButton(
+            )),
+
+            SizedBox(width: 68, child: _AdminButton(
               title: 'إضافة أقسام',
               icon: SvgPicture.asset(
                 'assets/icons/document.svg',
@@ -234,7 +239,23 @@ class _AdminScreenState extends State<AdminScreen> {
               onTap: () {
                 Navigator.pushNamed(context, '/add-category');
               },
-            ),
+            )),
+
+            SizedBox(width: 68, child: _AdminButton(
+              title: 'إدارة المستخدمين',
+              icon: SvgPicture.asset(
+                'assets/icons/Profile.svg',
+                width: 19,
+                height: 19,
+                colorFilter: const ColorFilter.mode(
+                  Color(0xff53617F),
+                  BlendMode.srcIn,
+                ),
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, '/users_management_screen');
+              },
+            )),
           ],
         ),
       ),

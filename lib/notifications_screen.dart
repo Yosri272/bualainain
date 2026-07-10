@@ -19,7 +19,7 @@ class NotificationsScreen extends StatelessWidget {
         backgroundColor: bgColor,
         body: Column(
           children: [
-            _header(context, Colors.white),
+            _header(context),
 
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -101,41 +101,48 @@ class NotificationsScreen extends StatelessWidget {
   }
 
 }
-Widget _header(BuildContext context, Color? textColor) {
-  return Container(
-    height: 120,
+Widget _header(BuildContext context) {
+  return SizedBox(
+    height: 165,
     width: double.infinity,
-    decoration: const BoxDecoration(
-      image: DecorationImage(
-        image: AssetImage('assets/images/header_bg.png'),
-        fit: BoxFit.cover,
-      ),
-    ),
     child: Stack(
       clipBehavior: Clip.none,
       children: [
-
+        Container(
+          height: 120,
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/header_bg.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
 
         Positioned(
           right: 24,
-          bottom: -45,
+          top: 142,
           child: InkWell(
             onTap: () {
-              Navigator.pop(context);
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home',
+                    (route) => false,
+              );
             },
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.arrow_back_ios_new,
                   size: 15,
-                  color: textColor,
+                  color: NotificationsScreen.textColor,
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 Text(
                   'العودة',
                   style: TextStyle(
-                    color: textColor,
+                    color: NotificationsScreen.textColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -148,7 +155,6 @@ Widget _header(BuildContext context, Color? textColor) {
     ),
   );
 }
-
 class _NotificationItem extends StatelessWidget {
   final String id;
   final String title;

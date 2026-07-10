@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -206,38 +207,48 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _header(BuildContext context) {
-    return Container(
-      height: 135,
+    return SizedBox(
+      height: 165,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/header_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
           Positioned(
-            right: 28,
-            bottom: -38,
+            right: 24,
+            top: 142,
             child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: const Row(
+              onTap: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/welcome',
+                      (route) => false,
+                );
+              },
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.arrow_back_ios_new,
-                    color: LoginScreen.textColor,
                     size: 15,
+                    color: LoginScreen.textColor,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     'العودة',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: LoginScreen.textColor,
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -269,10 +280,14 @@ class _PhoneInputBox extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.phone_outlined,
-            color: LoginScreen.textColor,
-            size: 25,
+          SvgPicture.asset(
+            'assets/icons/Call.svg',
+            width: 19,
+            height: 19,
+            colorFilter: const ColorFilter.mode(
+              LoginScreen.textColor,
+              BlendMode.srcIn,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(

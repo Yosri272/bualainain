@@ -17,7 +17,7 @@ class MembersManagementScreen extends StatelessWidget {
         body: Column(
           children: [
             _header(context),
-            const SizedBox(height: 70),
+            const SizedBox(height: 20),
 
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -51,39 +51,71 @@ class MembersManagementScreen extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: const Color(0xffE6E6E6),
                         ),
-                        borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(.05),
-                            blurRadius: 12,
-                            offset: const Offset(0, 8),
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          children: [
-                            const _TableHeader(),
-                            const SizedBox(height: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
 
-                            ...users.map((doc) {
-                              final data = doc.data()
-                              as Map<String, dynamic>;
+                          /// عنوان البطاقة
+                          Container(
+                            height: 56,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: Color(0xffE6E6E6),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: const Text(
+                              "إدارة الأعضاء",
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: textColor,
+                              ),
+                            ),
+                          ),
 
-                              return _MemberRow(
-                                docId: doc.id,
-                                name: data['name'] ?? '',
-                                phone: data['phone'] ?? '',
-                              );
-                            }),
-                          ],
-                        ),
+                          /// محتوى الجدول
+                          Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Column(
+                              children: [
+
+                                const _TableHeader(),
+
+                                const SizedBox(height: 12),
+
+                                ...users.map((doc) {
+                                  final data = doc.data() as Map<String, dynamic>;
+
+                                  return _MemberRow(
+                                    docId: doc.id,
+                                    name: data['name'] ?? '',
+                                    phone: data['phone'] ?? '',
+                                  );
+                                }),
+
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    )
                   );
                 },
               ),
@@ -202,22 +234,60 @@ class _MemberRow extends StatelessWidget {
     required this.phone,
   });
 
-  Future<void> approveUser() async {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(docId)
-        .update({
-      'status': 'approved',
-    });
+  Future<void> approveUser(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("نجاح"),
+        content: const Text("تم قبول العضو بنجاح"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("حسناً"),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(docId)
+          .update({
+        'status': 'approved',
+      });
+    }
   }
 
-  Future<void> rejectUser() async {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(docId)
-        .update({
-      'status': 'rejected',
-    });
+  Future<void> rejectUser(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text(
+          "تم",
+          textAlign: TextAlign.center,
+        ),
+        content: const Text(
+          "تم رفض العضو بنجاح",
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("حسناً"),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(docId)
+          .update({
+        'status': 'rejected',
+      });
+    }
   }
 
   @override
@@ -243,7 +313,7 @@ class _MemberRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: InkWell(
-              onTap: approveUser,
+              onTap: () => approveUser(context),
               child: const Text(
                 'قبول',
                 textAlign: TextAlign.center,
@@ -257,7 +327,7 @@ class _MemberRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: InkWell(
-              onTap: rejectUser,
+              onTap: () => rejectUser(context),
               child: const Text(
                 'رفض',
                 textAlign: TextAlign.center,
@@ -270,6 +340,84 @@ class _MemberRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> showResultDialog(
+      BuildContext context, {
+        required String title,
+        required String message,
+      }) {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 28,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xffF8F3F8),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xff2E2E3A),
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    color: Color(0xff2E2E3A),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                SizedBox(
+                  width: 150,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xff7366D8),
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      "حسناً",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

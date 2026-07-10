@@ -100,23 +100,34 @@ class NewsScreen extends StatelessWidget {
   }
 
   Widget _header(BuildContext context) {
-    return Container(
-      height: 120,
+    return SizedBox(
+      height: 165,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/header_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
           Positioned(
             right: 24,
-            bottom: -35,
+            top: 142,
             child: InkWell(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                      (route) => false,
+                );
+              },
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -219,9 +230,11 @@ class _NewsCard extends StatelessWidget {
                 ),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     '$categoryName | $city | $date',
+                    textAlign: TextAlign.right,
                     style: const TextStyle(
                       color: textColor,
                       fontSize: 12,
@@ -235,7 +248,7 @@ class _NewsCard extends StatelessWidget {
 
                   Text(
                     title.isNotEmpty ? title : content,
-                    textAlign: TextAlign.center,
+                    textAlign: TextAlign.right,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,

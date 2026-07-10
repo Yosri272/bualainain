@@ -23,6 +23,7 @@ import 'add_news_screen.dart';
 import 'add_member_screen.dart';
 import 'add_category_screen.dart';
 import 'members_management_screen.dart';
+import 'users_management_screen.dart';
 import 'contact_us_screen.dart';
 import 'rate_app_screen.dart';
 import 'terms_screen.dart';
@@ -30,6 +31,8 @@ import 'privacy_policy_screen.dart';
 import 'NotificationSettingsScreen.dart';
 import 'SuccessScreen.dart';
 import 'RejectedAccountScreen.dart';
+import 'edit_profile_screen.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -99,6 +102,7 @@ class MyApp extends StatelessWidget {
         '/add-member': (context) => const AddMemberScreen(),
         '/add-category': (context) => const AddCategoryScreen(),
         '/members-management': (context) => const MembersManagementScreen(),
+        '/users_management_screen': (context) => const UsersManagementScreen(),
         '/contact-us': (context) => const ContactUsScreen(),
         '/rate-app': (context) => const RateAppScreen(),
         '/terms': (context) => const TermsScreen(),
@@ -106,6 +110,9 @@ class MyApp extends StatelessWidget {
         '/SuccessScreen': (context) => const SuccessScreen(),
         '/pending-approval': (_) => const PendingApprovalScreen(),
         '/rejected-account': (_) => const RejectedAccountScreen(),
+        '/edit-profile': (context) => const EditProfileScreen(),
+
+
       },
     );
   }

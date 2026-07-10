@@ -464,6 +464,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
                               '${data['categoryName'] ?? ''} | ${data['city'] ?? ''} | $formattedDate',
@@ -480,7 +481,7 @@ class HomeScreen extends StatelessWidget {
 
                             Text(
                               data['title'] ?? '',
-                              textAlign: TextAlign.center,
+                              textAlign: TextAlign.right,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
@@ -491,19 +492,8 @@ class HomeScreen extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
 
-                            const SizedBox(height: 4),
 
-                            Text(
-                              data['content'] ?? '',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                height: 1.3,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+
                           ],
                         ),
                       ),
