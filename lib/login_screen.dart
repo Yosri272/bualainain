@@ -280,16 +280,6 @@ class _PhoneInputBox extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SvgPicture.asset(
-            'assets/icons/Call.svg',
-            width: 19,
-            height: 19,
-            colorFilter: const ColorFilter.mode(
-              LoginScreen.textColor,
-              BlendMode.srcIn,
-            ),
-          ),
-          const SizedBox(width: 14),
           Expanded(
             child: TextField(
               controller: controller,
@@ -304,6 +294,16 @@ class _PhoneInputBox extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          SvgPicture.asset(
+            'assets/icons/Call.svg',
+            width: 19,
+            height: 19,
+            colorFilter: const ColorFilter.mode(
+              LoginScreen.textColor,
+              BlendMode.srcIn,
             ),
           ),
         ],
