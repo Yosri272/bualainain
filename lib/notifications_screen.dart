@@ -163,7 +163,6 @@ class _NotificationItem extends StatelessWidget {
   final bool isRead;
 
   const _NotificationItem({
-    super.key,
     required this.id,
     required this.title,
     required this.body,

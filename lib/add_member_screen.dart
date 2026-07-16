@@ -257,7 +257,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: DropdownButtonFormField<String>(
-                    value: genderController.text.isEmpty
+                    initialValue: genderController.text.isEmpty
                         ? null
                         : genderController.text,
                     decoration: const InputDecoration(

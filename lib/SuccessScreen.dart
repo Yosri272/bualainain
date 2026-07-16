@@ -25,7 +25,7 @@ class SuccessScreen extends StatelessWidget {
                     width: 130,
                     height: 130,
                     decoration: BoxDecoration(
-                      color: blue.withOpacity(.1),
+                      color: blue.withValues(alpha: .1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

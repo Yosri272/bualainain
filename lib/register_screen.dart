@@ -331,7 +331,6 @@ class _InputBox extends StatelessWidget {
   final TextInputType? keyboardType;
 
   const _InputBox({
-    super.key,
     required this.controller,
     required this.hint,
     required this.icon,

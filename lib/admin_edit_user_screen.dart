@@ -251,7 +251,7 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: DropdownButtonFormField<String>(
-                    value: selectedGender,
+                    initialValue: selectedGender,
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                     ),
