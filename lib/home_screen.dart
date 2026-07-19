@@ -405,7 +405,7 @@ class HomeScreen extends StatelessWidget {
               final Timestamp? createdAt = data['createdAt'];
 
               final String formattedDate = createdAt != null
-                  ? DateFormat('d MMMM yyyy', 'ar').format(createdAt.toDate())
+                  ? DateFormat('dd.MM.yyyy').format(createdAt.toDate())
                   : '';
 
               return InkWell(

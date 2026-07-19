@@ -2,11 +2,202 @@ import 'package:flutter/material.dart';
 import 'widgets/custom_bottom_nav.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   static const Color textColor = Color(0xff53617F);
+
+  Future<bool> _reauthenticate(BuildContext context, User user) async {
+    final providerId =
+    user.providerData.isNotEmpty ? user.providerData.first.providerId : '';
+
+    // حالة الدخول بالإيميل وكلمة المرور (الأدمن مثلاً)
+    if (providerId == 'password') {
+      final passwordController = TextEditingController();
+
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: const Text('تأكيد الهوية', textAlign: TextAlign.right),
+            content: TextField(
+              controller: passwordController,
+              obscureText: true,
+              textAlign: TextAlign.right,
+              decoration: const InputDecoration(
+                hintText: 'أدخل كلمة المرور الحالية',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('تأكيد'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirmed != true) return false;
+
+      try {
+        final credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: passwordController.text.trim(),
+        );
+        await user.reauthenticateWithCredential(credential);
+        debugPrint('✅ تمت إعادة المصادقة بنجاح (Email/Password)');
+        return true;
+      } catch (e) {
+        debugPrint('❌ فشل إعادة المصادقة: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('كلمة المرور غير صحيحة')),
+          );
+        }
+        return false;
+      }
+    }
+
+    // حالة الدخول برقم الجوال / OTP أو أي طريقة أخرى
+    debugPrint('⚠️ طريقة الدخول ($providerId) تحتاج تسجيل خروج ودخول جديد');
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('الرجاء تسجيل الخروج والدخول مرة أخرى ثم إعادة المحاولة'),
+        ),
+      );
+    }
+    return false;
+  }
+
+  Future<void> _deleteAccount(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text(
+            'حذف الحساب',
+            textAlign: TextAlign.right,
+          ),
+          content: const Text(
+            'سيتم حذف حسابك وجميع بياناتك نهائيًا ولا يمكن التراجع عن هذا الإجراء. هل أنت متأكد؟',
+            textAlign: TextAlign.right,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('حذف نهائي'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      debugPrint('❌ لا يوجد مستخدم مسجل دخول حاليًا');
+      return;
+    }
+
+    debugPrint('UID الحالي: ${user.uid}');
+    debugPrint('طريقة الدخول: ${user.providerData.map((p) => p.providerId).join(", ")}');
+
+    // إعادة المصادقة أولاً (مطلوبة من Firebase لعمليات الحذف)
+    final reauthenticated = await _reauthenticate(context, user);
+    if (!reauthenticated) return;
+
+    if (!context.mounted) return;
+
+    // إظهار مؤشر تحميل أثناء عملية الحذف
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final uid = user.uid;
+
+      // 1. حذف بيانات المستخدم من Firestore
+      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+      debugPrint('✅ تم حذف مستند Firestore بنجاح (users/$uid)');
+
+      // 2. حذف حساب المستخدم من Firebase Authentication
+      await user.delete();
+      debugPrint('✅ تم حذف حساب Auth بنجاح');
+
+      if (context.mounted) {
+        Navigator.pop(context); // إغلاق مؤشر التحميل
+
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+              (route) => false,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حذف حسابك بنجاح')),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('❌ FirebaseAuthException: ${e.code} - ${e.message}');
+
+      if (context.mounted) Navigator.pop(context); // إغلاق مؤشر التحميل
+
+      if (e.code == 'requires-recent-login') {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'لأسباب أمنية، الرجاء تسجيل الخروج والدخول مرة أخرى ثم إعادة المحاولة',
+              ),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('حدث خطأ أثناء حذف الحساب: ${e.message}')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ خطأ غير متوقع: $e');
+      if (context.mounted) {
+        Navigator.pop(context); // إغلاق مؤشر التحميل
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ غير متوقع أثناء حذف الحساب: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +338,7 @@ class ProfileScreen extends StatelessWidget {
                         BlendMode.srcIn,
                       ),
                     ),
+                    onTap: () => _deleteAccount(context),
                   ),
                   _ProfileItem(
                     title: 'تسجيل الخروج',

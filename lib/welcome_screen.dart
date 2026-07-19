@@ -8,6 +8,90 @@ class WelcomeScreen extends StatelessWidget {
   static const Color textColor = Color(0xff53617F);
   static const Color grayText = Color(0xff9A9A9A);
 
+  // دالة عرض نافذة اختيار نوع الدخول
+  void _showLoginTypeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'اختر نوع الدخول',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // خيار الدخول كمسؤول
+                _dialogOptionButton(
+                  context: context,
+                  label: 'دخول كمسؤول',
+                  onTap: () {
+                    Navigator.pop(context); // إغلاق النافذة
+                    Navigator.pushNamed(context, '/admin-login');
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // خيار الدخول كفرد من العائلة
+                _dialogOptionButton(
+                  context: context,
+                  label: 'دخول كفرد من العائلة',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/login', arguments: {'type': 'member'});
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _dialogOptionButton({
+    required BuildContext context,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 52,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          gradient: const LinearGradient(
+            colors: [mint, blue],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -26,16 +110,16 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               children: [
                 _header(),
-                const Spacer(flex: 3),
+                const Spacer(flex: 5),
                 const Text(
                   'تطبيق أسرة البوعينين',
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 25,
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 const Text(
                   'اهلا بكم ويسعدنا تواجدكم معنا',
                   style: TextStyle(
@@ -44,12 +128,12 @@ class WelcomeScreen extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 58),
+                const SizedBox(height: 40),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 43),
                   child: InkWell(
                     onTap: () {
-                      Navigator.pushNamed(context, '/login');
+                      _showLoginTypeDialog(context); // بدل الانتقال المباشر
                     },
                     child: Container(
                       height: 58,
@@ -66,14 +150,14 @@ class WelcomeScreen extends StatelessWidget {
                         'تسجيل الدخول',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -81,7 +165,7 @@ class WelcomeScreen extends StatelessWidget {
                       'ليس لديك حساب شخصي؟',
                       style: TextStyle(
                         color: grayText,
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -94,14 +178,14 @@ class WelcomeScreen extends StatelessWidget {
                         'سجل الآن',
                         style: TextStyle(
                           color: textColor,
-                          fontSize: 17,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const Spacer(flex: 4),
+                const Spacer(flex: 6),
               ],
             ),
           ),
@@ -109,15 +193,16 @@ class WelcomeScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _header() {
     return SizedBox(
-      height: 165,
+      height: 140,
       width: double.infinity,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Container(
-            height: 120,
+            height: 140,
             width: double.infinity,
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -126,7 +211,6 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ),
           ),
-
         ],
       ),
     );

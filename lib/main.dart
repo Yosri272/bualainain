@@ -13,6 +13,7 @@ import 'admin_screen.dart';
 import 'welcome_screen.dart';
 import 'register_screen.dart';
 import 'login_screen.dart';
+import 'admin_login_screen.dart';
 import 'otp_screen.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
@@ -90,6 +91,7 @@ class MyApp extends StatelessWidget {
         '/welcome': (context) => const WelcomeScreen(),
         '/register': (context) => const RegisterScreen(),
         '/login': (context) => const LoginScreen(),
+        '/admin-login': (context) => const AdminLoginScreen(),
         '/otp': (context) => const OtpScreen(),
         '/': (context) => const HomeScreen(),
         '/home': (context) => const HomeScreen(),

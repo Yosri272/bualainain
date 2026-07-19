@@ -19,9 +19,46 @@ class NewsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         body: Column(
           children: [
-            _header(context),
+            _header(),
 
-            const SizedBox(height: 44),
+            const SizedBox(height: 40),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/home',
+                          (route) => false,
+                    );
+                  },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 15,
+                        color: textColor,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'العودة',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 26),
 
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -59,16 +96,15 @@ class NewsScreen extends StatelessWidget {
                   final news = snapshot.data!.docs;
 
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: news.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 18),
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final data = news[index].data() as Map<String, dynamic>;
                       final Timestamp? createdAt = data['createdAt'];
 
                       final String formattedDate = createdAt != null
-                          ? DateFormat('d MMMM yyyy', 'ar')
-                          .format(createdAt.toDate())
+                          ? DateFormat('dd.MM.yyyy').format(createdAt.toDate())
                           : '';
 
                       return _NewsCard(
@@ -99,57 +135,15 @@ class NewsScreen extends StatelessWidget {
     );
   }
 
-  Widget _header(BuildContext context) {
-    return SizedBox(
-      height: 165,
+  Widget _header() {
+    return Container(
+      height: 90,
       width: double.infinity,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/header_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          Positioned(
-            right: 24,
-            top: 142,
-            child: InkWell(
-              onTap: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/home',
-                      (route) => false,
-                );
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
-                    color: textColor,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'العودة',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/header_bg.png'),
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
@@ -184,7 +178,7 @@ class _NewsCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(11),
       child: Container(
-        height: 285,
+        height: 306,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(11),
           boxShadow: [
@@ -199,7 +193,7 @@ class _NewsCard extends StatelessWidget {
         child: Column(
           children: [
             SizedBox(
-              height: 200,
+              height: 215,
               width: double.infinity,
               child: imageUrl.isNotEmpty
                   ? Image.network(
@@ -219,7 +213,7 @@ class _NewsCard extends StatelessWidget {
             ),
 
             Container(
-              height: 85,
+              height: 91,
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               decoration: const BoxDecoration(

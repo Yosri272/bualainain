@@ -9,8 +9,6 @@ class NewsDetailsScreen extends StatelessWidget {
 
   static const Color textColor = Color(0xff53617F);
 
-
-
   @override
   Widget build(BuildContext context) {
     final newsId = ModalRoute.of(context)?.settings.arguments as String?;
@@ -20,9 +18,46 @@ class NewsDetailsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         body: Column(
           children: [
-            _header(context),
+            _header(),
 
-            const SizedBox(height: 55),
+            const SizedBox(height: 40),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/news',
+                          (route) => false,
+                    );
+                  },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 15,
+                        color: textColor,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'العودة',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 26),
 
             Expanded(
               child: newsId == null
@@ -59,8 +94,7 @@ class NewsDetailsScreen extends StatelessWidget {
                   snapshot.data!.data() as Map<String, dynamic>;
                   final Timestamp? createdAt = data['createdAt'];
                   final String formattedDate = createdAt != null
-                      ? DateFormat('d MMMM yyyy', 'ar')
-                      .format(createdAt.toDate())
+                      ? DateFormat('dd.MM.yyyy').format(createdAt.toDate())
                       : '';
                   final imageUrl = data['imageUrl'] ?? '';
                   final categoryName = data['categoryName'] ?? '';
@@ -68,14 +102,14 @@ class NewsDetailsScreen extends StatelessWidget {
                   final title = data['title'] ?? '';
                   final content = data['content'] ?? '';
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
                     child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: SizedBox(
-                            height: 255,
+                            height: 248,
                             width: double.infinity,
                             child: imageUrl.toString().isNotEmpty
                                 ? Image.network(
@@ -96,7 +130,7 @@ class NewsDetailsScreen extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 18),
 
                         Text(
                           '$categoryName | $city | $formattedDate',
@@ -108,7 +142,7 @@ class NewsDetailsScreen extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 18),
 
                         Text(
                           title,
@@ -147,57 +181,15 @@ class NewsDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _header(BuildContext context) {
-    return SizedBox(
-      height: 165,
+  Widget _header() {
+    return Container(
+      height: 90,
       width: double.infinity,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/header_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          Positioned(
-            right: 24,
-            top: 142,
-            child: InkWell(
-              onTap: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/news',
-                      (route) => false,
-                );
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
-                    color: textColor,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'العودة',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/header_bg.png'),
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }

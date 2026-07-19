@@ -45,8 +45,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final String role = userData['role'] ?? 'user';
       final String status = userData['status'] ?? 'pending';
 
+      // منع حسابات المسؤولين من الدخول عبر هذه الشاشة
       if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin');
+        showMessage('هذا الحساب مخصص للمسؤولين، الرجاء استخدام دخول المسؤول');
         return;
       }
 
