@@ -67,8 +67,11 @@ class NewsScreen extends StatelessWidget {
                     .where('isPublished', isEqualTo: true)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
                   }
 
                   if (snapshot.hasError) {
@@ -80,7 +83,8 @@ class NewsScreen extends StatelessWidget {
                     );
                   }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  if (!snapshot.hasData ||
+                      snapshot.data!.docs.isEmpty) {
                     return const Center(
                       child: Text(
                         'لا توجد أخبار',
@@ -96,23 +100,91 @@ class NewsScreen extends StatelessWidget {
                   final news = snapshot.data!.docs;
 
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                    ),
                     itemCount: news.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, __) {
+                      return const SizedBox(height: 10);
+                    },
                     itemBuilder: (context, index) {
-                      final data = news[index].data() as Map<String, dynamic>;
-                      final Timestamp? createdAt = data['createdAt'];
+                      final data = news[index].data()
+                      as Map<String, dynamic>;
 
-                      final String formattedDate = createdAt != null
-                          ? DateFormat('dd.MM.yyyy').format(createdAt.toDate())
+                      final Timestamp? createdAt =
+                      data['createdAt'] as Timestamp?;
+
+                      final String formattedDate =
+                      createdAt != null
+                          ? DateFormat('dd.MM.yyyy').format(
+                        createdAt.toDate(),
+                      )
                           : '';
 
+                      /*
+                       * يدعم الأخبار الجديدة والقديمة.
+                       *
+                       * الأخبار الجديدة:
+                       * mediaType: image أو video
+                       * mediaUrl: رابط الصورة أو الفيديو
+                       *
+                       * الأخبار القديمة:
+                       * imageUrl أو videoUrl
+                       */
+                      final String videoUrl =
+                      (data['videoUrl'] ?? '')
+                          .toString()
+                          .trim();
+
+                      final String imageUrl =
+                      (data['imageUrl'] ?? '')
+                          .toString()
+                          .trim();
+
+                      final String savedMediaType =
+                      (data['mediaType'] ?? '')
+                          .toString()
+                          .trim()
+                          .toLowerCase();
+
+                      final bool isVideo =
+                          savedMediaType == 'video' ||
+                              videoUrl.isNotEmpty;
+
+                      final String mediaType =
+                      isVideo ? 'video' : 'image';
+
+                      final String mediaUrl =
+                      (data['mediaUrl'] ??
+                          (isVideo
+                              ? videoUrl
+                              : imageUrl))
+                          .toString()
+                          .trim();
+
+                      /*
+                       * اختياري:
+                       * عند إضافة thumbnailUrl للفيديو مستقبلًا،
+                       * ستظهر صورة مصغرة بدل الصورة الافتراضية.
+                       */
+                      final String thumbnailUrl =
+                      (data['thumbnailUrl'] ?? '')
+                          .toString()
+                          .trim();
+
                       return _NewsCard(
-                        title: data['title'] ?? '',
-                        content: data['content'] ?? '',
-                        categoryName: data['categoryName'] ?? '',
-                        city: data['city'] ?? '',
-                        imageUrl: data['imageUrl'] ?? '',
+                        title:
+                        (data['title'] ?? '').toString(),
+                        content:
+                        (data['content'] ?? '').toString(),
+                        categoryName:
+                        (data['categoryName'] ?? '')
+                            .toString(),
+                        city:
+                        (data['city'] ?? '').toString(),
+                        mediaUrl: mediaUrl,
+                        mediaType: mediaType,
+                        thumbnailUrl: thumbnailUrl,
                         date: formattedDate,
                         onTap: () {
                           Navigator.pushNamed(
@@ -141,7 +213,9 @@ class NewsScreen extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
+          image: AssetImage(
+            'assets/images/header_bg.png',
+          ),
           fit: BoxFit.cover,
         ),
       ),
@@ -154,7 +228,11 @@ class _NewsCard extends StatelessWidget {
   final String content;
   final String categoryName;
   final String city;
-  final String imageUrl;
+
+  final String mediaUrl;
+  final String mediaType;
+  final String thumbnailUrl;
+
   final String date;
   final VoidCallback onTap;
 
@@ -163,14 +241,18 @@ class _NewsCard extends StatelessWidget {
     required this.content,
     required this.categoryName,
     required this.city,
+    required this.mediaUrl,
+    required this.mediaType,
+    required this.thumbnailUrl,
     required this.date,
-    required this.imageUrl,
     required this.onTap,
   });
 
   static const Color blue = Color(0xff5E7FCB);
   static const Color mint = Color(0xff9FE2D4);
   static const Color textColor = Color(0xff53617F);
+
+  bool get isVideo => mediaType == 'video';
 
   @override
   Widget build(BuildContext context) {
@@ -195,36 +277,31 @@ class _NewsCard extends StatelessWidget {
             SizedBox(
               height: 215,
               width: double.infinity,
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) {
-                  return Image.asset(
-                    'assets/images/news.png',
-                    fit: BoxFit.cover,
-                  );
-                },
-              )
-                  : Image.asset(
-                'assets/images/news.png',
-                fit: BoxFit.cover,
-              ),
+              child: isVideo
+                  ? _buildVideoCover()
+                  : _buildImageCover(),
             ),
 
             Container(
               height: 91,
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 9,
+              ),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [mint, blue],
+                  colors: [
+                    mint,
+                    blue,
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment:
+                CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     '$categoryName | $city | $date',
@@ -258,6 +335,115 @@ class _NewsCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// عرض صورة الخبر العادي
+  Widget _buildImageCover() {
+    if (mediaUrl.isEmpty) {
+      return Image.asset(
+        'assets/images/news.png',
+        fit: BoxFit.cover,
+      );
+    }
+
+    return Image.network(
+      mediaUrl,
+      fit: BoxFit.cover,
+      loadingBuilder: (
+          BuildContext context,
+          Widget child,
+          ImageChunkEvent? loadingProgress,
+          ) {
+        if (loadingProgress == null) {
+          return child;
+        }
+
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+      errorBuilder: (_, __, ___) {
+        return Image.asset(
+          'assets/images/news.png',
+          fit: BoxFit.cover,
+        );
+      },
+    );
+  }
+
+  /// عرض غلاف الفيديو مع علامة فيديو
+  Widget _buildVideoCover() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // إذا توفر thumbnailUrl تظهر الصورة المصغرة.
+        // وإلا تظهر الصورة الافتراضية.
+        thumbnailUrl.isNotEmpty
+            ? Image.network(
+          thumbnailUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) {
+            return Image.asset(
+              'assets/images/news.png',
+              fit: BoxFit.cover,
+            );
+          },
+        )
+            : Image.asset(
+          'assets/images/news.png',
+          fit: BoxFit.cover,
+        ),
+
+        // طبقة خفيفة لإظهار زر التشغيل
+        Container(
+          color: Colors.black.withValues(alpha: 0.20),
+        ),
+
+        // زر التشغيل في المنتصف
+        const Center(
+          child: Icon(
+            Icons.play_circle_fill_rounded,
+            color: Colors.white,
+            size: 58,
+          ),
+        ),
+
+        // شارة فيديو
+        Positioned(
+          top: 10,
+          right: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 9,
+              vertical: 5,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.videocam_rounded,
+                  color: Colors.white,
+                  size: 15,
+                ),
+                SizedBox(width: 4),
+                Text(
+                  'فيديو',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

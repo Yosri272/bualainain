@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -98,7 +99,7 @@ class _AdminScreenState extends State<AdminScreen> {
         body: Column(
           children: [
             _header(context),
-            const SizedBox(height: 70),
+            const SizedBox(height: 20),
             Expanded(
               child: isLoading
                   ? const Center(
@@ -122,25 +123,71 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _header(BuildContext context) {
-    return Container(
-      height: 120,
+    return SizedBox(
+      height: 165,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/header_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/header_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
           Positioned(
             right: 24,
-            bottom: -45,
+            top: 142,
             child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: const Row(
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text(
+                        'تسجيل الخروج',
+                        textAlign: TextAlign.right,
+                      ),
+                      content: const Text(
+                        'هل أنت متأكد من رغبتك في تسجيل الخروج؟',
+                        textAlign: TextAlign.right,
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, false);
+                          },
+                          child: const Text('إلغاء'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context, true);
+                          },
+                          child: const Text('خروج'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                if (confirm == true) {
+                  await FirebaseAuth.instance.signOut();
+
+                  if (!context.mounted) return;
+
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/welcome',
+                        (route) => false,
+                  );
+                }
+              },
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
@@ -148,7 +195,7 @@ class _AdminScreenState extends State<AdminScreen> {
                     size: 15,
                     color: textColor,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     'العودة',
                     style: TextStyle(
@@ -165,8 +212,6 @@ class _AdminScreenState extends State<AdminScreen> {
       ),
     );
   }
-
-
   Widget _adminCard(BuildContext context) {
     return _SectionCard(
       title: 'إدارة التطبيق',

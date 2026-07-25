@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddNewsScreen extends StatefulWidget {
   const AddNewsScreen({super.key});
@@ -14,24 +18,205 @@ class AddNewsScreen extends StatefulWidget {
 }
 
 class _AddNewsScreenState extends State<AddNewsScreen> {
-  final titleController = TextEditingController();
-  final contentController = TextEditingController();
-  final cityController = TextEditingController();
-  final imageUrlController = TextEditingController();
+  final TextEditingController titleController =
+  TextEditingController();
+
+  final TextEditingController contentController =
+  TextEditingController();
+
+  final TextEditingController cityController =
+  TextEditingController();
+
   static const Color textColor = Color(0xff53617F);
 
-
+  final ImagePicker mediaPicker = ImagePicker();
 
   String? selectedCategoryId;
   String? selectedCategoryName;
 
+  XFile? selectedMedia;
+
+  // القيمة تكون image أو video
+  String? selectedMediaType;
+
   bool isLoading = false;
 
+  static const Set<String> _videoExtensions = {
+    'mp4', 'mov', 'm4v', 'webm', 'avi', 'mkv', '3gp',
+  };
+
+  /// اختيار صورة أو فيديو من نفس المعرض مباشرة (بدون قائمة اختيار نوع)
+  Future<void> pickMedia() async {
+    if (isLoading) return;
+
+    try {
+      final XFile? media = await mediaPicker.pickMedia(
+        imageQuality: 80,
+      );
+
+      if (media == null || !mounted) return;
+
+      final String extension = getFileExtension(media);
+      final bool isVideo =
+      _videoExtensions.contains(extension);
+
+      final int fileSize = await media.length();
+
+      final int maxSize =
+      isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+
+      if (fileSize > maxSize) {
+        showMessage(
+          isVideo
+              ? 'حجم الفيديو كبير، يجب ألا يتجاوز 50 ميجابايت'
+              : 'حجم الصورة كبير، يجب ألا يتجاوز 5 ميجابايت',
+        );
+        return;
+      }
+
+      setState(() {
+        selectedMedia = media;
+        selectedMediaType = isVideo ? 'video' : 'image';
+      });
+    } catch (error) {
+      showMessage('تعذر اختيار الملف: $error');
+    }
+  }
+
+  /// إزالة الملف المختار
+  void removeSelectedMedia() {
+    setState(() {
+      selectedMedia = null;
+      selectedMediaType = null;
+    });
+  }
+
+  /// استخراج امتداد الملف
+  String getFileExtension(XFile file) {
+    String fileName = file.name.trim().toLowerCase();
+
+    if (fileName.isEmpty) {
+      fileName = file.path.trim().toLowerCase();
+    }
+
+    if (fileName.contains('.')) {
+      final String extension =
+          fileName.split('.').last.split('?').first;
+
+      if (extension.isNotEmpty) {
+        return extension;
+      }
+    }
+
+    return selectedMediaType == 'video' ? 'mp4' : 'jpg';
+  }
+
+  /// تحديد نوع الملف المرسل إلى Firebase Storage
+  String getContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'png':
+        return 'image/png';
+
+      case 'webp':
+        return 'image/webp';
+
+      case 'gif':
+        return 'image/gif';
+
+      case 'heic':
+        return 'image/heic';
+
+      case 'jpeg':
+      case 'jpg':
+        return 'image/jpeg';
+
+      case 'mov':
+        return 'video/quicktime';
+
+      case 'm4v':
+        return 'video/x-m4v';
+
+      case 'webm':
+        return 'video/webm';
+
+      case 'avi':
+        return 'video/x-msvideo';
+
+      case 'mp4':
+        return 'video/mp4';
+
+      default:
+        return selectedMediaType == 'video'
+            ? 'video/mp4'
+            : 'image/jpeg';
+    }
+  }
+
+  /// رفع الصورة أو الفيديو إلى Firebase Storage
+  Future<Map<String, String>> uploadMedia({
+    required String newsId,
+  }) async {
+    if (selectedMedia == null ||
+        selectedMediaType == null) {
+      throw Exception('الرجاء اختيار صورة أو فيديو');
+    }
+
+    final String extension =
+    getFileExtension(selectedMedia!);
+
+    final String fileName =
+    selectedMediaType == 'video'
+        ? 'video.$extension'
+        : 'image.$extension';
+
+    final String storagePath =
+        'news/$newsId/$fileName';
+
+    final Reference storageReference =
+    FirebaseStorage.instance
+        .ref()
+        .child(storagePath);
+
+    final SettableMetadata metadata =
+    SettableMetadata(
+      contentType:
+      selectedMedia!.mimeType ??
+          getContentType(extension),
+      customMetadata: {
+        'newsId': newsId,
+        'mediaType': selectedMediaType!,
+      },
+    );
+
+    final UploadTask uploadTask =
+    storageReference.putFile(
+      File(selectedMedia!.path),
+      metadata,
+    );
+
+    final TaskSnapshot snapshot =
+    await uploadTask;
+
+    final String mediaUrl =
+    await snapshot.ref.getDownloadURL();
+
+    return {
+      'mediaUrl': mediaUrl,
+      'mediaType': selectedMediaType!,
+      'storagePath': storagePath,
+    };
+  }
+
+  /// حفظ الخبر والإشعار بعد رفع الملف
   Future<void> saveNews() async {
-    final title = titleController.text.trim();
-    final content = contentController.text.trim();
-    final city = cityController.text.trim();
-    final imageUrl = imageUrlController.text.trim();
+    final String title =
+    titleController.text.trim();
+
+    final String content =
+    contentController.text.trim();
+
+    final String city =
+    cityController.text.trim();
 
     if (title.isEmpty) {
       showMessage('الرجاء إدخال عنوان الخبر');
@@ -43,40 +228,120 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
       return;
     }
 
+    if (selectedMedia == null ||
+        selectedMediaType == null) {
+      showMessage('الرجاء اختيار صورة أو فيديو');
+      return;
+    }
+
     if (content.isEmpty) {
       showMessage('الرجاء كتابة محتوى الخبر');
       return;
     }
 
-    try {
-      setState(() => isLoading = true);
+    final User? currentUser =
+        FirebaseAuth.instance.currentUser;
 
-      await FirebaseFirestore.instance.collection('news').add({
+    if (currentUser == null) {
+      showMessage('يجب تسجيل الدخول أولاً');
+      return;
+    }
+
+    Reference? uploadedFileReference;
+    bool dataSaved = false;
+
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      // إنشاء رقم الخبر قبل رفع الملف
+      final DocumentReference<Map<String, dynamic>>
+      newsReference = FirebaseFirestore.instance
+          .collection('news')
+          .doc();
+
+      // رفع الصورة أو الفيديو
+      final Map<String, String> uploadedMedia =
+      await uploadMedia(
+        newsId: newsReference.id,
+      );
+
+      final String mediaUrl =
+      uploadedMedia['mediaUrl']!;
+
+      final String mediaType =
+      uploadedMedia['mediaType']!;
+
+      final String storagePath =
+      uploadedMedia['storagePath']!;
+
+      uploadedFileReference =
+          FirebaseStorage.instance
+              .ref()
+              .child(storagePath);
+
+      final DocumentReference<Map<String, dynamic>>
+      notificationReference =
+      FirebaseFirestore.instance
+          .collection('notifications')
+          .doc();
+
+      final WriteBatch batch =
+      FirebaseFirestore.instance.batch();
+
+      // حفظ الخبر
+      batch.set(newsReference, {
         'title': title,
         'content': content,
         'city': city.isEmpty ? 'الرياض' : city,
-        'imageUrl': imageUrl,
+
+        // بيانات الصورة أو الفيديو
+        'mediaUrl': mediaUrl,
+        'mediaType': mediaType,
+        'storagePath': storagePath,
+
+        // الحقول القديمة للتوافق مع بقية التطبيق
+        'imageUrl':
+        mediaType == 'image' ? mediaUrl : '',
+        'videoUrl':
+        mediaType == 'video' ? mediaUrl : '',
+
         'categoryId': selectedCategoryId,
         'categoryName': selectedCategoryName,
-        'authorId': '',
+        'authorId': currentUser.uid,
         'authorName': 'الإدارة',
         'isPublished': true,
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      await FirebaseFirestore.instance.collection('notifications').add({
+      // إنشاء الإشعار
+      batch.set(notificationReference, {
+        'newsId': newsReference.id,
         'title': title,
         'body': content,
         'type': 'news',
+        'mediaUrl': mediaUrl,
+        'mediaType': mediaType,
+        'imageUrl':
+        mediaType == 'image' ? mediaUrl : '',
+        'videoUrl':
+        mediaType == 'video' ? mediaUrl : '',
         'isRead': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
+      await batch.commit();
+
+      dataSaved = true;
+
       if (!mounted) return;
 
-      await showDialog(
+      await showDialog<void>(
         context: context,
-        builder: (context) {
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
           return AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -85,14 +350,16 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
               'تم بنجاح',
               textAlign: TextAlign.right,
             ),
-            content: const Text(
-              'تم إضافة خبر بنجاح',
+            content: Text(
+              mediaType == 'video'
+                  ? 'تم رفع الفيديو وإضافة الخبر بنجاح'
+                  : 'تم رفع الصورة وإضافة الخبر بنجاح',
               textAlign: TextAlign.right,
             ),
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.pop(dialogContext);
                 },
                 child: const Text('موافق'),
               ),
@@ -106,17 +373,45 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/admin',
-            (route) => false,
+            (Route<dynamic> route) => false,
       );
+    } on FirebaseException catch (error) {
+      if (!dataSaved &&
+          uploadedFileReference != null) {
+        try {
+          await uploadedFileReference.delete();
+        } catch (_) {}
+      }
 
-    } catch (e) {
-      showMessage('خطأ في حفظ الخبر: $e');
+      showMessage(
+        'خطأ Firebase: ${error.code}\n'
+            '${error.message ?? 'حدث خطأ غير معروف'}',
+      );
+    } catch (error) {
+      if (!dataSaved &&
+          uploadedFileReference != null) {
+        try {
+          await uploadedFileReference.delete();
+        } catch (_) {}
+      }
+
+      showMessage('خطأ في حفظ الخبر: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
   void showMessage(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+      ),
     );
   }
 
@@ -125,7 +420,6 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
     titleController.dispose();
     contentController.dispose();
     cityController.dispose();
-    imageUrlController.dispose();
     super.dispose();
   }
 
@@ -138,10 +432,12 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
         body: Column(
           children: [
             _header(context),
-            const SizedBox(height: 70),
+            const SizedBox(height: 40),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                ),
                 child: _formCard(),
               ),
             ),
@@ -151,41 +447,48 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
     );
   }
 
+  /// الهيدر بتدرج أزرق كما في التصميم
   Widget _header(BuildContext context) {
     return SizedBox(
-      height: 165,
+      height: 190,
       width: double.infinity,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Container(
-            height: 120,
+            height: 150,
             width: double.infinity,
             decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/header_bg.png'),
-                fit: BoxFit.cover,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xff6C87C9),
+                  Color(0xff8FA3D6),
+                ],
               ),
             ),
           ),
 
           Positioned(
             right: 24,
-            top: 142,
+            top: 168,
             child: InkWell(
-              onTap: () {
+              onTap: isLoading
+                  ? null
+                  : () {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/admin',
-                      (route) => false,
+                      (Route<dynamic> route) => false,
                 );
               },
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
+                    Icons.arrow_forward_ios,
+                    size: 14,
                     color: textColor,
                   ),
                   SizedBox(width: 6),
@@ -205,11 +508,14 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
       ),
     );
   }
+
   Widget _formCard() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xffE6E6E6)),
+        border: Border.all(
+          color: const Color(0xffE6E6E6),
+        ),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -218,13 +524,17 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
             height: 58,
             width: double.infinity,
             alignment: Alignment.centerRight,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+            ),
             decoration: const BoxDecoration(
               color: Color(0xffF8F8F8),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(10),
+              ),
             ),
             child: const Text(
-              'إضافة خبر',
+              'اضافة خبر',
               style: TextStyle(
                 color: Color(0xff222222),
                 fontSize: 17,
@@ -232,6 +542,7 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
               ),
             ),
           ),
+
           Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -240,51 +551,66 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
                   controller: titleController,
                   hint: 'عنوان الخبر',
                 ),
+
                 const SizedBox(height: 14),
-                _InputField(
-                  controller: cityController,
-                  hint: 'المدينة',
-                ),
-                const SizedBox(height: 14),
+
                 _CategoryDropdown(
-                  selectedCategoryId: selectedCategoryId,
-                  onChanged: (id, name) {
+                  selectedCategoryId:
+                  selectedCategoryId,
+                  onChanged: (
+                      String id,
+                      String name,
+                      ) {
                     setState(() {
                       selectedCategoryId = id;
                       selectedCategoryName = name;
                     });
                   },
                 ),
+
                 const SizedBox(height: 14),
-                _InputField(
-                  controller: imageUrlController,
-                  hint: 'رابط الصورة',
-                ),
-                const SizedBox(height: 14),
+
                 _InputField(
                   controller: contentController,
                   hint: 'اكتب هنا ...',
-                  height: 190,
-                  maxLines: 8,
+                  height: 260,
+                  maxLines: 10,
                 ),
+
                 const SizedBox(height: 16),
+
+                // زر إضافة الوسائط بتدرج لوني كما في التصميم
+                _MediaPickerButton(
+                  selectedMedia: selectedMedia,
+                  selectedMediaType: selectedMediaType,
+                  onTap: pickMedia,
+                  onRemove: removeSelectedMedia,
+                ),
+
+                const SizedBox(height: 14),
+
                 InkWell(
-                  onTap: isLoading ? null : saveNews,
+                  onTap:
+                  isLoading ? null : saveNews,
                   child: Container(
                     height: 52,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: AddNewsScreen.textColor,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius:
+                      BorderRadius.circular(6),
                     ),
                     child: isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const CircularProgressIndicator(
+                      color: Colors.white,
+                    )
                         : const Text(
                       'ارسال الخبر',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 17,
-                        fontWeight: FontWeight.w800,
+                        fontWeight:
+                        FontWeight.w800,
                       ),
                     ),
                   ),
@@ -298,9 +624,86 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
   }
 }
 
+/// زر إضافة الوسائط (صورة أو فيديو) بتدرج لوني مطابق للتصميم
+class _MediaPickerButton extends StatelessWidget {
+  final XFile? selectedMedia;
+  final String? selectedMediaType;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  const _MediaPickerButton({
+    required this.selectedMedia,
+    required this.selectedMediaType,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasMedia = selectedMedia != null;
+
+    String label = 'اضف الوسائط';
+
+    if (hasMedia) {
+      label = selectedMediaType == 'video'
+          ? 'تم اختيار فيديو'
+          : 'تم اختيار صورة';
+    }
+
+    return InkWell(
+      onTap: onTap,
+      onLongPress: hasMedia ? onRemove : null,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        height: 52,
+        width: double.infinity,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          gradient: const LinearGradient(
+            begin: Alignment.centerRight,
+            end: Alignment.centerLeft,
+            colors: [
+              Color(0xff9FBAC9),
+              Color(0xff6C87C9),
+            ],
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (hasMedia) ...[
+              const SizedBox(width: 8),
+              Icon(
+                selectedMediaType == 'video'
+                    ? Icons.videocam_outlined
+                    : Icons.image_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CategoryDropdown extends StatelessWidget {
   final String? selectedCategoryId;
-  final void Function(String id, String name) onChanged;
+
+  final void Function(
+      String id,
+      String name,
+      ) onChanged;
 
   const _CategoryDropdown({
     required this.selectedCategoryId,
@@ -311,7 +714,9 @@ class _CategoryDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xffF6F6F6),
         borderRadius: BorderRadius.circular(3),
@@ -319,41 +724,81 @@ class _CategoryDropdown extends StatelessWidget {
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('categories')
-            .orderBy('createdAt', descending: true)
+            .orderBy(
+          'createdAt',
+          descending: true,
+        )
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('خطأ في تحميل الأقسام'));
+            return const Center(
+              child: Text(
+                'خطأ في تحميل الأقسام',
+              ),
+            );
           }
 
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              ),
+            );
           }
 
-          final docs = snapshot.data!.docs;
+          final List<QueryDocumentSnapshot> docs =
+              snapshot.data!.docs;
 
           if (docs.isEmpty) {
-            return const Center(child: Text('لا توجد أقسام'));
+            return const Center(
+              child: Text('لا توجد أقسام'),
+            );
           }
 
           return DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: selectedCategoryId,
               isExpanded: true,
-              hint: const Text('اختر التصنيف'),
-              items: docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                final name = data['name'] ?? 'قسم';
+              hint: const Text('التصنيف'),
+              items: docs.map(
+                    (QueryDocumentSnapshot document) {
+                  final Map<String, dynamic> data =
+                  document.data()
+                  as Map<String, dynamic>;
 
-                return DropdownMenuItem<String>(
-                  value: doc.id,
-                  child: Text(name),
-                  onTap: () {
-                    onChanged(doc.id, name);
-                  },
+                  final String name =
+                  (data['name'] ?? 'قسم')
+                      .toString();
+
+                  return DropdownMenuItem<String>(
+                    value: document.id,
+                    child: Text(name),
+                  );
+                },
+              ).toList(),
+              onChanged: (String? selectedId) {
+                if (selectedId == null) return;
+
+                final QueryDocumentSnapshot document =
+                docs.firstWhere(
+                      (QueryDocumentSnapshot item) =>
+                  item.id == selectedId,
                 );
-              }).toList(),
-              onChanged: (_) {},
+
+                final Map<String, dynamic> data =
+                document.data()
+                as Map<String, dynamic>;
+
+                final String name =
+                (data['name'] ?? 'قسم')
+                    .toString();
+
+                onChanged(selectedId, name);
+              },
             ),
           );
         },
@@ -379,7 +824,9 @@ class _InputField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xffF6F6F6),
         borderRadius: BorderRadius.circular(3),

@@ -11,74 +11,122 @@ class AddCategoryScreen extends StatefulWidget {
   static const Color textColor = Color(0xff53617F);
 
   @override
-  State<AddCategoryScreen> createState() => _AddCategoryScreenState();
+  State<AddCategoryScreen> createState() =>
+      _AddCategoryScreenState();
 }
 
 class _AddCategoryScreenState extends State<AddCategoryScreen> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController nameController =
+  TextEditingController();
+
+  final TextEditingController descriptionController =
+  TextEditingController();
 
   static const Color textColor = Color(0xff53617F);
 
   File? selectedImage;
   bool isLoading = false;
 
+  /// اختيار صورة القسم من معرض الصور
   Future<void> pickImage() async {
-    final picker = ImagePicker();
+    try {
+      final ImagePicker picker = ImagePicker();
 
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1600,
+        requestFullMetadata: false,
+      );
 
-    if (image != null) {
+      if (image == null || !mounted) return;
+
       setState(() {
         selectedImage = File(image.path);
       });
+    } catch (error) {
+      showMessage('تعذر اختيار الصورة: $error');
     }
   }
 
-  Future<String> uploadImage() async {
-    if (selectedImage == null) return '';
+  /// رفع صورة القسم إلى Firebase Storage
+  Future<String> uploadImage(String categoryId) async {
+    if (selectedImage == null) {
+      throw Exception('الرجاء اختيار صورة القسم');
+    }
 
-    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-
-    final ref = FirebaseStorage.instance
+    final Reference imageReference = FirebaseStorage.instance
         .ref()
         .child('categories')
-        .child('$fileName.jpg');
+        .child(categoryId)
+        .child('image.jpg');
 
-    await ref.putFile(selectedImage!);
+    final SettableMetadata metadata = SettableMetadata(
+      contentType: 'image/jpeg',
+      customMetadata: {
+        'categoryId': categoryId,
+      },
+    );
 
-    return await ref.getDownloadURL();
+    final UploadTask uploadTask = imageReference.putFile(
+      selectedImage!,
+      metadata,
+    );
+
+    final TaskSnapshot snapshot = await uploadTask;
+
+    return snapshot.ref.getDownloadURL();
   }
 
+  /// حفظ بيانات القسم ورابط الصورة في Firestore
   Future<void> saveCategory() async {
-    final name = nameController.text.trim();
-    final description = descriptionController.text.trim();
+    final String name = nameController.text.trim();
+    final String description =
+    descriptionController.text.trim();
 
     if (name.isEmpty) {
       showMessage('الرجاء إدخال اسم القسم');
       return;
     }
 
+    if (selectedImage == null) {
+      showMessage('الرجاء اختيار صورة القسم');
+      return;
+    }
+
     try {
-      setState(() => isLoading = true);
+      setState(() {
+        isLoading = true;
+      });
 
-      final imageUrl = await uploadImage();
+      // إنشاء رقم مستند جديد قبل رفع الصورة
+      final DocumentReference<Map<String, dynamic>>
+      categoryReference = FirebaseFirestore.instance
+          .collection('categories')
+          .doc();
 
-      await FirebaseFirestore.instance.collection('categories').add({
+      // رفع الصورة في مجلد يحمل نفس رقم مستند القسم
+      final String imageUrl = await uploadImage(
+        categoryReference.id,
+      );
+
+      // حفظ بيانات القسم في Firestore
+      await categoryReference.set({
         'name': name,
         'description': description,
         'imageUrl': imageUrl,
+        'storagePath':
+        'categories/${categoryReference.id}/image.jpg',
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
 
-      await showDialog(
+      await showDialog<void>(
         context: context,
-        builder: (context) {
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
           return AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -94,7 +142,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.pop(dialogContext);
                 },
                 child: const Text('موافق'),
               ),
@@ -108,13 +156,20 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/admin',
-            (route) => false,
+            (Route<dynamic> route) => false,
       );
-    } catch (e) {
-      showMessage('خطأ في حفظ القسم: $e');
+    } on FirebaseException catch (error) {
+      showMessage(
+        'خطأ Firebase: ${error.code}\n'
+            '${error.message ?? 'حدث خطأ غير معروف'}',
+      );
+    } catch (error) {
+      showMessage('خطأ في حفظ القسم: $error');
     } finally {
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() {
+          isLoading = false;
+        });
       }
     }
   }
@@ -123,13 +178,17 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
     Navigator.pushNamedAndRemoveUntil(
       context,
       '/admin',
-          (route) => false,
+          (Route<dynamic> route) => false,
     );
   }
 
   void showMessage(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+      ),
     );
   }
 
@@ -149,13 +208,19 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
         body: Column(
           children: [
             _header(context),
+
             const SizedBox(height: 70),
+
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xffE6E6E6)),
+                    border: Border.all(
+                      color: const Color(0xffE6E6E6),
+                    ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -164,7 +229,9 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                         height: 58,
                         width: double.infinity,
                         alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                        ),
                         color: const Color(0xffF8F8F8),
                         child: const Text(
                           'إضافة قسم',
@@ -187,7 +254,8 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                             const SizedBox(height: 14),
 
                             _InputField(
-                              controller: descriptionController,
+                              controller:
+                              descriptionController,
                               hint: 'وصف القسم',
                               maxLines: 4,
                               height: 120,
@@ -196,35 +264,47 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                             const SizedBox(height: 18),
 
                             InkWell(
-                              onTap: isLoading ? null : pickImage,
+                              onTap:
+                              isLoading ? null : pickImage,
                               child: Container(
                                 height: 120,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xffF6F6F6),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color:
+                                  const Color(0xffF6F6F6),
+                                  borderRadius:
+                                  BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: const Color(0xffDDDDDD),
+                                    color: const Color(
+                                      0xffDDDDDD,
+                                    ),
                                   ),
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: selectedImage == null
                                     ? const Column(
                                   mainAxisAlignment:
-                                  MainAxisAlignment.center,
+                                  MainAxisAlignment
+                                      .center,
                                   children: [
                                     Icon(
-                                      Icons.image_outlined,
+                                      Icons
+                                          .image_outlined,
                                       size: 40,
-                                      color: AddCategoryScreen.textColor,
+                                      color:
+                                      AddCategoryScreen
+                                          .textColor,
                                     ),
                                     SizedBox(height: 10),
                                     Text(
                                       'اختر أيقونة القسم',
                                       style: TextStyle(
                                         color:
-                                        AddCategoryScreen.textColor,
-                                        fontWeight: FontWeight.w700,
+                                        AddCategoryScreen
+                                            .textColor,
+                                        fontWeight:
+                                        FontWeight
+                                            .w700,
                                       ),
                                     ),
                                   ],
@@ -240,14 +320,18 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                             const SizedBox(height: 22),
 
                             InkWell(
-                              onTap: isLoading ? null : saveCategory,
+                              onTap: isLoading
+                                  ? null
+                                  : saveCategory,
                               child: Container(
                                 height: 52,
                                 width: double.infinity,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                  color: AddCategoryScreen.textColor,
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: AddCategoryScreen
+                                      .textColor,
+                                  borderRadius:
+                                  BorderRadius.circular(4),
                                 ),
                                 child: isLoading
                                     ? const CircularProgressIndicator(
@@ -258,7 +342,8 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 17,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight:
+                                    FontWeight.w800,
                                   ),
                                 ),
                               ),
@@ -289,7 +374,9 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
             width: double.infinity,
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/images/header_bg.png'),
+                image: AssetImage(
+                  'assets/images/header_bg.png',
+                ),
                 fit: BoxFit.cover,
               ),
             ),
@@ -303,7 +390,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/admin',
-                      (route) => false,
+                      (Route<dynamic> route) => false,
                 );
               },
               child: const Row(
@@ -350,7 +437,9 @@ class _InputField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xffF6F6F6),
         borderRadius: BorderRadius.circular(4),

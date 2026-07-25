@@ -161,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'دخول',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 23,
+                            fontSize: 20,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -291,7 +291,7 @@ class _PhoneInputBox extends StatelessWidget {
                 hintText: 'رقم الجوال',
                 hintStyle: TextStyle(
                   color: LoginScreen.textColor,
-                  fontSize: 21,
+                  fontSize: 17,
                   fontWeight: FontWeight.w700,
                 ),
               ),

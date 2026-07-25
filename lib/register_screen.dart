@@ -32,7 +32,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (nameController.text.trim().isEmpty ||
         phoneController.text.trim().isEmpty ||
-        emailController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty) {
       showMessage('الرجاء تعبئة جميع البيانات');
       return;
@@ -41,9 +40,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       setState(() => isLoading = true);
 
+      final String enteredEmail = emailController.text.trim();
+      // إذا لم يدخل المستخدم بريدًا، نولّد بريدًا داخليًا لإنشاء حساب Firebase
+      final String authEmail = enteredEmail.isNotEmpty
+          ? enteredEmail
+          : '${phoneController.text.trim()}@placeholder.app';
+
       final UserCredential userCredential =
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
+        email: authEmail,
         password: passwordController.text.trim(),
       );
 
@@ -53,9 +58,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'userId': userId,
         'name': nameController.text.trim(),
         'phone': phoneController.text.trim(),
-        'email': emailController.text.trim(),
+        'email': enteredEmail, // يبقى فارغًا لو ما أدخله المستخدم
         'role': 'user',
-        'status': 'pending', // pending - approved - rejected
+        'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -66,7 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       String message = 'حدث خطأ أثناء إنشاء الحساب';
 
       if (e.code == 'email-already-in-use') {
-        message = 'البريد الإلكتروني مستخدم مسبقاً';
+        message = 'رقم الجوال أو البريد مستخدم مسبقاً';
       } else if (e.code == 'weak-password') {
         message = 'كلمة المرور ضعيفة، يجب أن تكون 6 أحرف أو أكثر';
       } else if (e.code == 'invalid-email') {
@@ -82,7 +87,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     }
   }
-
   void showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
@@ -164,7 +168,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     _InputBox(
                       controller: emailController,
-                      hint: 'البريد الإلكتروني',
+                      hint: 'البريد الإلكتروني (اختياري)',
                       icon: SvgPicture.asset(
                         'assets/icons/mail.svg',
                         width: 20,

@@ -14,12 +14,50 @@ class TermsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         body: Column(
           children: [
-            _header(context),
-            const SizedBox(height: 75),
+            _header(),
+
+            const SizedBox(height: 40),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/profile',
+                          (route) => false,
+                    );
+                  },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 15,
+                        color: textColor,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'العودة',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 26),
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(22),
@@ -34,7 +72,7 @@ class TermsScreen extends StatelessWidget {
                         'الأحكام والشروط',
                         style: TextStyle(
                           color: textColor,
-                          fontSize: 22,
+                          fontSize: 20,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -74,6 +112,7 @@ class TermsScreen extends StatelessWidget {
                         title: '6. تعديل الشروط',
                         body:
                         'يحق لإدارة التطبيق تعديل هذه الشروط في أي وقت، ويعد استمرارك في استخدام التطبيق موافقة على التعديلات الجديدة.',
+                        isLast: true,
                       ),
                     ],
                   ),
@@ -88,57 +127,15 @@ class TermsScreen extends StatelessWidget {
     );
   }
 
-  Widget _header(BuildContext context) {
-    return SizedBox(
-      height: 165,
+  Widget _header() {
+    return Container(
+      height: 90,
       width: double.infinity,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/header_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          Positioned(
-            right: 24,
-            top: 142,
-            child: InkWell(
-              onTap: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/profile',
-                      (route) => false,
-                );
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
-                    color: textColor,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'العودة',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/header_bg.png'),
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
@@ -147,16 +144,18 @@ class TermsScreen extends StatelessWidget {
 class _TermsParagraph extends StatelessWidget {
   final String title;
   final String body;
+  final bool isLast;
 
   const _TermsParagraph({
     required this.title,
     required this.body,
+    this.isLast = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
