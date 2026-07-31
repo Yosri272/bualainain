@@ -253,6 +253,27 @@ class _AdminScreenState extends State<AdminScreen> {
                 Navigator.pushNamed(context, '/add-news');
               },
             )),
+            SizedBox(
+              width: 68,
+              child: _AdminButton(
+                title: 'إدارة الأخبار',
+                icon: SvgPicture.asset(
+                  'assets/icons/book-reader.svg',
+                  width: 19,
+                  height: 19,
+                  colorFilter: const ColorFilter.mode(
+                    Color(0xff53617F),
+                    BlendMode.srcIn,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/manage-news',
+                  );
+                },
+              ),
+            ),
 
             SizedBox(width: 68, child: _AdminButton(
               title: 'إدارة الأعضاء',

@@ -33,6 +33,7 @@ import 'NotificationSettingsScreen.dart';
 import 'SuccessScreen.dart';
 import 'RejectedAccountScreen.dart';
 import 'edit_profile_screen.dart';
+import 'manage_news_screen.dart';
 
 
 Future<void> main() async {
@@ -113,7 +114,7 @@ class MyApp extends StatelessWidget {
         '/pending-approval': (_) => const PendingApprovalScreen(),
         '/rejected-account': (_) => const RejectedAccountScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
-
+        '/manage-news': (context) => const ManageNewsScreen(),
 
       },
     );
