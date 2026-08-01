@@ -10,6 +10,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 
 import 'admin_screen.dart';
+import 'news_search_screen.dart';
 import 'welcome_screen.dart';
 import 'register_screen.dart';
 import 'login_screen.dart';
@@ -34,7 +35,7 @@ import 'SuccessScreen.dart';
 import 'RejectedAccountScreen.dart';
 import 'edit_profile_screen.dart';
 import 'manage_news_screen.dart';
-
+import 'manage_categories_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -115,6 +116,9 @@ class MyApp extends StatelessWidget {
         '/rejected-account': (_) => const RejectedAccountScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
         '/manage-news': (context) => const ManageNewsScreen(),
+        '/manage-categories': (context) => const ManageCategoriesScreen(),
+        '/news-search': (context) => const NewsSearchScreen(),
+
 
       },
     );

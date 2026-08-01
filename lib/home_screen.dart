@@ -27,7 +27,7 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     _header(),
-                    _searchBox(),
+                    _searchBox(context),
                     _inviteCard(),
                     const SizedBox(height: 22),
                     _sectionTitle('الأقسام الرئيسية'),
@@ -135,37 +135,44 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _searchBox() {
+  /// صندوق البحث - يفتح شاشة البحث المخصصة عند الضغط عليه
+  Widget _searchBox(BuildContext context) {
     return Transform.translate(
       offset: const Offset(0, -38),
-      child: Container(
-        height: 60,
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(9),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: .08),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.search, color: Color(0xffC9C9C9), size: 30),
-
-            Text(
-              'اكتب ماتريد البحث عنه',
-              style: TextStyle(
-                color: Color(0xffCFCFCF),
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(9),
+        onTap: () {
+          Navigator.pushNamed(context, '/news-search');
+        },
+        child: Container(
+          height: 60,
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .08),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.search, color: Color(0xffC9C9C9), size: 30),
+
+              Text(
+                'اكتب ماتريد البحث عنه',
+                style: TextStyle(
+                  color: Color(0xffCFCFCF),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

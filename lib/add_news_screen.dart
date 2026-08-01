@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'manage_categories_screen.dart';
+
 class AddNewsScreen extends StatefulWidget {
   const AddNewsScreen({super.key});
 
@@ -447,36 +449,32 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
     );
   }
 
-  /// الهيدر بتدرج أزرق كما في التصميم
+
   Widget _header(BuildContext context) {
     return SizedBox(
-      height: 190,
+      height: 165,
       width: double.infinity,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Container(
-            height: 150,
+            height: 120,
             width: double.infinity,
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xff6C87C9),
-                  Color(0xff8FA3D6),
-                ],
+              image: DecorationImage(
+                image: AssetImage(
+                  'assets/images/header_bg.png',
+                ),
+                fit: BoxFit.cover,
               ),
             ),
           ),
 
           Positioned(
             right: 24,
-            top: 168,
+            top: 142,
             child: InkWell(
-              onTap: isLoading
-                  ? null
-                  : () {
+              onTap: () {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/admin',
@@ -487,15 +485,15 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.arrow_forward_ios,
-                    size: 14,
-                    color: textColor,
+                    Icons.arrow_back_ios_new,
+                    size: 15,
+                    color: kTextColor,
                   ),
                   SizedBox(width: 6),
                   Text(
                     'العودة',
                     style: TextStyle(
-                      color: textColor,
+                      color: kTextColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),

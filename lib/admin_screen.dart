@@ -220,7 +220,7 @@ class _AdminScreenState extends State<AdminScreen> {
         child: Wrap(
           spacing: 10,
           runSpacing: 10,
-          alignment: WrapAlignment.spaceBetween,
+          alignment: WrapAlignment.start,
           children: [
             SizedBox(width: 68, child: _AdminButton(
               title: 'إضافة عضو',
@@ -237,7 +237,21 @@ class _AdminScreenState extends State<AdminScreen> {
                 Navigator.pushNamed(context, '/add-member');
               },
             )),
-
+            SizedBox(width: 68, child: _AdminButton(
+              title: 'إدارة الأعضاء',
+              icon: SvgPicture.asset(
+                'assets/icons/Profile.svg',
+                width: 19,
+                height: 19,
+                colorFilter: const ColorFilter.mode(
+                  Color(0xff53617F),
+                  BlendMode.srcIn,
+                ),
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, '/members-management');
+              },
+            )),
             SizedBox(width: 68, child: _AdminButton(
               title: 'إضافة خبر',
               icon: SvgPicture.asset(
@@ -276,23 +290,7 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
 
             SizedBox(width: 68, child: _AdminButton(
-              title: 'إدارة الأعضاء',
-              icon: SvgPicture.asset(
-                'assets/icons/Profile.svg',
-                width: 19,
-                height: 19,
-                colorFilter: const ColorFilter.mode(
-                  Color(0xff53617F),
-                  BlendMode.srcIn,
-                ),
-              ),
-              onTap: () {
-                Navigator.pushNamed(context, '/members-management');
-              },
-            )),
-
-            SizedBox(width: 68, child: _AdminButton(
-              title: 'إضافة أقسام',
+              title: ' اضافة الأقسام',
               icon: SvgPicture.asset(
                 'assets/icons/document.svg',
                 width: 19,
@@ -306,9 +304,23 @@ class _AdminScreenState extends State<AdminScreen> {
                 Navigator.pushNamed(context, '/add-category');
               },
             )),
-
             SizedBox(width: 68, child: _AdminButton(
-              title: 'إدارة المستخدمين',
+              title: ' إدارة الأقسام',
+              icon: SvgPicture.asset(
+                'assets/icons/document.svg',
+                width: 19,
+                height: 19,
+                colorFilter: const ColorFilter.mode(
+                  Color(0xff53617F),
+                  BlendMode.srcIn,
+                ),
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, '/manage-categories');
+              },
+            )),
+            SizedBox(width: 68, child: _AdminButton(
+              title: 'إدارة المستخدم',
               icon: SvgPicture.asset(
                 'assets/icons/Profile.svg',
                 width: 19,
