@@ -15,7 +15,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         body: Column(
           children: [
             _header(context),
-            const SizedBox(height: 75),
+            const SizedBox(height: 40),
 
             Expanded(
               child: SingleChildScrollView(

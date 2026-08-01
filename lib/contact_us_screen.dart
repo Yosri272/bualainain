@@ -17,7 +17,7 @@ class ContactUsScreen extends StatelessWidget {
         body: Column(
           children: [
             _header(context),
-            const SizedBox(height: 70),
+            const SizedBox(height: 30),
 
             Expanded(
               child: SingleChildScrollView(
