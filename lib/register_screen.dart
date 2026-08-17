@@ -16,13 +16,86 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController nameController = TextEditingController();
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController secondNameController = TextEditingController();
+  final TextEditingController thirdNameController = TextEditingController();
+  final TextEditingController fourthNameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  String? gender; // 'male' أو 'female'
+  DateTime? birthDate;
   bool agree = false;
   bool isLoading = false;
+
+  String _formatDate(DateTime date) {
+    final String day = date.day.toString().padLeft(2, '0');
+    final String month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  Future<void> pickBirthDate() async {
+    final DateTime now = DateTime.now();
+    final DateTime initialDate = birthDate ?? DateTime(now.year - 18, now.month, now.day);
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year - 100),
+      lastDate: now,
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      if (picked.isAfter(now)) {
+        showFutureDateDialog();
+        return;
+      }
+      setState(() => birthDate = picked);
+    }
+  }
+
+  Future<void> showFutureDateDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            title: const Text(
+              'تاريخ غير صحيح',
+              style: TextStyle(
+                color: RegisterScreen.textColor,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            content: const Text(
+              'لا يمكن اختيار تاريخ في المستقبل كتاريخ ميلاد',
+              style: TextStyle(color: RegisterScreen.textColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'حسناً',
+                  style: TextStyle(
+                    color: RegisterScreen.blue,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> createAccount() async {
     if (!agree) {
@@ -30,9 +103,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (nameController.text.trim().isEmpty ||
+    if (firstNameController.text.trim().isEmpty ||
+        secondNameController.text.trim().isEmpty ||
+        thirdNameController.text.trim().isEmpty ||
+        fourthNameController.text.trim().isEmpty ||
         phoneController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty) {
+        passwordController.text.trim().isEmpty ||
+        gender == null ||
+        birthDate == null) {
       showMessage('الرجاء تعبئة جميع البيانات');
       return;
     }
@@ -54,11 +132,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final String userId = userCredential.user!.uid;
 
+      final String fullName =
+          '${firstNameController.text.trim()} ${secondNameController.text.trim()} ${thirdNameController.text.trim()} ${fourthNameController.text.trim()}';
+
       await FirebaseFirestore.instance.collection('users').doc(userId).set({
         'userId': userId,
-        'name': nameController.text.trim(),
+        'firstName': firstNameController.text.trim(),
+        'secondName': secondNameController.text.trim(),
+        'thirdName': thirdNameController.text.trim(),
+        'fourthName': fourthNameController.text.trim(),
+        'name': fullName,
         'phone': phoneController.text.trim(),
         'email': enteredEmail, // يبقى فارغًا لو ما أدخله المستخدم
+        'gender': gender,
+        'birthDate': Timestamp.fromDate(birthDate!),
         'role': 'user',
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
@@ -87,6 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     }
   }
+
   void showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
@@ -95,7 +183,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    nameController.dispose();
+    firstNameController.dispose();
+    secondNameController.dispose();
+    thirdNameController.dispose();
+    fourthNameController.dispose();
     phoneController.dispose();
     emailController.dispose();
     passwordController.dispose();
@@ -138,7 +229,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 42),
 
                     _InputBox(
-                      controller: nameController,
+                      controller: firstNameController,
+                      hint: 'الإسم الأول',
+                      icon: SvgPicture.asset(
+                        'assets/icons/Profile.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: const ColorFilter.mode(
+                          RegisterScreen.textColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    _InputBox(
+                      controller: secondNameController,
                       hint: 'الإسم الثاني',
                       icon: SvgPicture.asset(
                         'assets/icons/Profile.svg',
@@ -148,7 +254,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           RegisterScreen.textColor,
                           BlendMode.srcIn,
                         ),
-                      ),                    ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    _InputBox(
+                      controller: thirdNameController,
+                      hint: 'الإسم الثالث',
+                      icon: SvgPicture.asset(
+                        'assets/icons/Profile.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: const ColorFilter.mode(
+                          RegisterScreen.textColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    _InputBox(
+                      controller: fourthNameController,
+                      hint: 'الإسم الرابع',
+                      icon: SvgPicture.asset(
+                        'assets/icons/Profile.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: const ColorFilter.mode(
+                          RegisterScreen.textColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 14),
 
                     _InputBox(
@@ -196,6 +333,104 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       obscureText: true,
                     ),
+                    const SizedBox(height: 14),
+
+                    // تاريخ الميلاد
+                    InkWell(
+                      onTap: pickBirthDate,
+                      child: Container(
+                        height: 58,
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffF7F7F7),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                birthDate != null
+                                    ? _formatDate(birthDate!)
+                                    : 'تاريخ الميلاد',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: birthDate != null
+                                      ? RegisterScreen.textColor
+                                      : RegisterScreen.textColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(
+                              Icons.cake_outlined,
+                              color: RegisterScreen.textColor,
+                              size: 22,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // اختيار الجنس - قائمة منسدلة
+                    Container(
+                      height: 58,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xffF7F7F7),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField<String>(
+                          value: gender,
+                          isExpanded: true,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: RegisterScreen.textColor,
+                          ),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isCollapsed: true,
+                          ),
+                          hint: const Text(
+                            'الجنس',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              color: RegisterScreen.textColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: RegisterScreen.textColor,
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'male',
+                              child: Text(
+                                'ذكر',
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'female',
+                              child: Text(
+                                'أنثى',
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() => gender = value);
+                          },
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 14),
 
                     Row(
@@ -257,8 +492,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-
-
 
                     const SizedBox(height: 30),
                   ],
@@ -325,8 +558,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-
 }
+
 class _InputBox extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -345,7 +578,7 @@ class _InputBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 58, // بدلاً من 72
+      height: 58,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(
         color: const Color(0xffF7F7F7),
@@ -367,7 +600,7 @@ class _InputBox extends StatelessWidget {
               ),
               decoration: InputDecoration(
                 border: InputBorder.none,
-                isCollapsed: true, // يقلل الارتفاع
+                isCollapsed: true,
                 hintText: hint,
                 hintStyle: const TextStyle(
                   color: RegisterScreen.textColor,
@@ -377,9 +610,7 @@ class _InputBox extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
           SizedBox(
             width: 22,
             height: 22,

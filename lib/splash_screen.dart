@@ -11,6 +11,14 @@ import 'home_screen.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
+  // خلفية الشاشة (رمادي فاتح)
+  static const Color backgroundColor = Color(0xFFE3E0E0);
+
+  static const Duration logoAnimationDuration = Duration(milliseconds: 900);
+  static const Duration branchAnimationDuration = Duration(milliseconds: 1400);
+  static const Duration branchStartDelay = Duration(milliseconds: 400);
+  static const Duration minSplashDuration = Duration(seconds: 3);
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -25,6 +33,10 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _branchAnimation;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  Timer? _branchStartTimer;
+  Timer? _navigationTimer;
+  bool _didPrecache = false;
 
   // مواقع بسيطة تمثل أفراد العائلة يتفرعوا حوالين الشعار
   final List<_MemberDot> _members = const [
@@ -43,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: SplashScreen.logoAnimationDuration,
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -58,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen>
     // كنترولر التفرّع: الأفراد بيظهروا ويبعدوا عن المركز بالتدريج
     _branchController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: SplashScreen.branchAnimationDuration,
     );
     _branchAnimation = CurvedAnimation(
       parent: _branchController,
@@ -70,11 +82,21 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     // نبدأ حركة التفرّع بعد ما اللوجو يظهر شوية
-    Future.delayed(const Duration(milliseconds: 400), () {
+    _branchStartTimer = Timer(SplashScreen.branchStartDelay, () {
       if (mounted) _branchController.forward();
     });
 
     _navigateNext();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // نحمّل الصورة مسبقًا عشان تظهر فورًا بدون وميض
+    if (!_didPrecache) {
+      _didPrecache = true;
+      precacheImage(const AssetImage('assets/images/app_icon.png'), context);
+    }
   }
 
   Future<void> _playIntroSound() async {
@@ -86,24 +108,30 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
-  Future<void> _navigateNext() async {
-    // مدة عرض الشاشة (ممكن تقصّرها أو تطوّلها)
-    await Future.delayed(const Duration(seconds: 3));
+  void _navigateNext() {
+    _navigationTimer = Timer(SplashScreen.minSplashDuration, () {
+      if (!mounted) return;
 
-    if (!mounted) return;
+      final User? currentUser = FirebaseAuth.instance.currentUser;
+      final Widget nextScreen =
+      currentUser != null ? const HomeScreen() : const WelcomeScreen();
 
-    final User? currentUser = FirebaseAuth.instance.currentUser;
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) =>
-            currentUser != null ? const HomeScreen() : const WelcomeScreen(),
-      ),
-    );
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 500),
+          pageBuilder: (_, animation, __) => nextScreen,
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      );
+    });
   }
 
   @override
   void dispose() {
+    _branchStartTimer?.cancel();
+    _navigationTimer?.cancel();
     _controller.dispose();
     _branchController.dispose();
     _audioPlayer.dispose();
@@ -113,111 +141,113 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B5E20), // أخضر غامق يرمز للجذور
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // منطقة اللوجو + الأفراد المتفرعة حواليه
-            SizedBox(
-              width: 260,
-              height: 260,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // الأفراد بيتفرعوا ويظهروا حوالين المركز
-                  ..._members.map((m) => _buildMemberDot(m)),
+      backgroundColor: SplashScreen.backgroundColor,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // منطقة اللوجو + الأفراد المتفرعة حواليه
+              SizedBox(
+                width: 260,
+                height: 260,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // الأفراد بيتفرعوا ويظهروا حوالين المركز
+                    ..._members.map((m) => _buildMemberDot(m)),
 
-                  // الخط الواصل (يمثل روابط النسب) بيتحرك مع نفس الأنيميشن
-                  AnimatedBuilder(
-                    animation: _branchAnimation,
-                    builder: (context, child) {
-                      return CustomPaint(
-                        size: const Size(260, 260),
-                        painter: _BranchLinesPainter(
-                          progress: _branchAnimation.value,
-                          members: _members,
-                        ),
-                      );
-                    },
-                  ),
+                    // الخط الواصل (يمثل روابط النسب) بيتحرك مع نفس الأنيميشن
+                    AnimatedBuilder(
+                      animation: _branchAnimation,
+                      builder: (context, child) {
+                        return CustomPaint(
+                          size: const Size(260, 260),
+                          painter: _BranchLinesPainter(
+                            progress: _branchAnimation.value,
+                            members: _members,
+                          ),
+                        );
+                      },
+                    ),
 
-                  // الشعار في المنتصف
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.25),
-                              blurRadius: 16,
-                              spreadRadius: 2,
+                    // الشعار في المنتصف
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.25),
+                                blurRadius: 16,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/app_icon.png',
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.family_restroom,
+                                  size: 50,
+                                  color: SplashScreen.backgroundColor,
+                                );
+                              },
                             ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/app_icon.png',
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.family_restroom,
-                                size: 50,
-                                color: Color(0xFF1B5E20),
-                              );
-                            },
                           ),
                         ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: const Text(
+                  'شجرة العائلة',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
                   ),
-                ],
+                ),
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: const Text(
-                'شجرة العائلة',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: 6),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Text(
+                  'اربط جذورك بأحبابك',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.85),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 36),
+              const SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
                   color: Colors.white,
-                  letterSpacing: 1.2,
+                  strokeWidth: 2.5,
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Text(
-                'اربط جذورك بأحبابك',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withOpacity(0.85),
-                ),
-              ),
-            ),
-            const SizedBox(height: 36),
-            const SizedBox(
-              width: 26,
-              height: 26,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2.5,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -229,7 +259,8 @@ class _SplashScreenState extends State<SplashScreen>
       animation: _branchAnimation,
       builder: (context, child) {
         // تأخير بسيط لكل فرد عشان الظهور يبقى متتابع مش دفعة واحدة
-        final double t = ((_branchAnimation.value - member.delay) / (1 - member.delay))
+        final double t =
+        ((_branchAnimation.value - member.delay) / (1 - member.delay))
             .clamp(0.0, 1.0);
 
         const double radius = 100;
@@ -258,7 +289,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: const Icon(
                   Icons.person,
                   size: 18,
-                  color: Color(0xFF1B5E20),
+                  color: SplashScreen.backgroundColor,
                 ),
               ),
             ),
