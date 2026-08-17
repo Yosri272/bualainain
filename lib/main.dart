@@ -36,6 +36,8 @@ import 'RejectedAccountScreen.dart';
 import 'edit_profile_screen.dart';
 import 'manage_news_screen.dart';
 import 'manage_categories_screen.dart';
+import 'splash_screen.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,7 +88,7 @@ class MyApp extends StatelessWidget {
         fontFamily: GoogleFonts.ibmPlexSansArabic().fontFamily,
       ),
 
-      initialRoute: '/welcome',
+      initialRoute: '/splash',
 
       routes: {
         '/admin': (context) => const AdminScreen(),
@@ -118,7 +120,7 @@ class MyApp extends StatelessWidget {
         '/manage-news': (context) => const ManageNewsScreen(),
         '/manage-categories': (context) => const ManageCategoriesScreen(),
         '/news-search': (context) => const NewsSearchScreen(),
-
+        '/splash': (context) => const SplashScreen(),
 
       },
     );

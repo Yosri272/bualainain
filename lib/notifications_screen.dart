@@ -598,6 +598,7 @@ class _NotificationItem extends StatefulWidget {
 
 class _NotificationItemState extends State<_NotificationItem> {
   bool isOpening = false;
+  bool isMarkingRead = false;
 
   IconData get _icon {
     switch (widget.type) {
@@ -698,13 +699,17 @@ class _NotificationItemState extends State<_NotificationItem> {
   }
 
   Future<bool> _markAsRead() async {
-    if (widget.isRead) {
+    if (widget.isRead || isMarkingRead) {
       return true;
     }
 
     if (widget.userId.isEmpty) {
       return false;
     }
+
+    setState(() {
+      isMarkingRead = true;
+    });
 
     try {
       await FirebaseFirestore.instance
@@ -722,7 +727,22 @@ class _NotificationItemState extends State<_NotificationItem> {
         'خطأ أثناء تحديث حالة الإشعار: $error',
       );
 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تحديث حالة الإشعار'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
       return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          isMarkingRead = false;
+        });
+      }
     }
   }
 
@@ -794,73 +814,13 @@ class _NotificationItemState extends State<_NotificationItem> {
     }
   }
 
+  /// الضغط على البطاقة نفسها: فتح الخبر فقط (لو نوعه news).
+  /// لا يغيّر حالة القراءة إطلاقًا - القراءة تتم فقط
+  /// من زر/أيقونة "تحديد كمقروء" الصريحة.
   Future<void> _handleTap() async {
     if (isOpening) return;
 
-    setState(() {
-      isOpening = true;
-    });
-
-    try {
-      /*
-       نبحث عن الخبر أولًا قبل تغيير الفلتر
-       أو تحديث الإشعار إلى مقروء.
-      */
-      if (widget.type == 'news') {
-        final resolvedNewsId = await _resolveNewsId();
-
-        if (!mounted) return;
-
-        if (resolvedNewsId.isEmpty) {
-          await _markAsRead();
-
-          if (!mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'لم يتم العثور على الخبر المرتبط بهذا الإشعار',
-              ),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 3),
-            ),
-          );
-
-          return;
-        }
-
-        /*
-         مهم جدًا:
-
-         نبدأ الانتقال أولًا، ثم نحدّث حالة القراءة.
-
-         لو حدث تحديث القراءة أولًا والمستخدم داخل
-         فلتر غير المقروء، ستختفي البطاقة وقد يتم
-         التخلص من الـ Widget قبل تنفيذ Navigator.
-        */
-        final navigationFuture = Navigator.pushNamed(
-          context,
-          '/news-details',
-          arguments: resolvedNewsId,
-        );
-
-        await _markAsRead();
-
-        /*
-         الانتظار حتى يعود المستخدم من صفحة الخبر.
-        */
-        await navigationFuture;
-
-        return;
-      }
-
-      /*
-       الأنواع غير المرتبطة بصفحة خبر.
-      */
-      await _markAsRead();
-
-      if (!mounted) return;
-
+    if (widget.type != 'news') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -868,6 +828,37 @@ class _NotificationItemState extends State<_NotificationItem> {
           ),
           behavior: SnackBarBehavior.floating,
         ),
+      );
+      return;
+    }
+
+    setState(() {
+      isOpening = true;
+    });
+
+    try {
+      final resolvedNewsId = await _resolveNewsId();
+
+      if (!mounted) return;
+
+      if (resolvedNewsId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'لم يتم العثور على الخبر المرتبط بهذا الإشعار',
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        return;
+      }
+
+      await Navigator.pushNamed(
+        context,
+        '/news-details',
+        arguments: resolvedNewsId,
       );
     } catch (error) {
       debugPrint(
@@ -1058,20 +1049,77 @@ class _NotificationItemState extends State<_NotificationItem> {
                 ),
               ),
 
-              if (!widget.isRead)
-                Container(
-                  width: 9,
-                  height: 9,
-                  margin: const EdgeInsets.only(
-                    top: 7,
-                    right: 6,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: NotificationsScreen.blue,
-                    shape: BoxShape.circle,
-                  ),
-                ),
+              /*
+               زر "تحديد كمقروء" الصريح.
+
+               وضعناه داخل InkWell/Material مستقل حتى لا يفتح
+               الخبر أو يشغّل onTap الخاص بالبطاقة عند الضغط عليه -
+               فلاتر يعطي أولوية الإيماءة لأعمق ودجت قابل للضغط.
+              */
+              const SizedBox(width: 6),
+
+              _MarkAsReadButton(
+                isRead: widget.isRead,
+                isLoading: isMarkingRead,
+                onTap: _markAsRead,
+              ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MarkAsReadButton extends StatelessWidget {
+  final bool isRead;
+  final bool isLoading;
+  final Future<bool> Function() onTap;
+
+  const _MarkAsReadButton({
+    required this.isRead,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isRead) {
+      // إشعار مقروء بالفعل - لا حاجة لزر تفاعلي، مؤشر ثابت فقط.
+      return const Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: Icon(
+          Icons.check_circle,
+          size: 20,
+          color: Color(0xffC7CEDC),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: isLoading ? null : onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: isLoading
+                ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: NotificationsScreen.blue,
+              ),
+            )
+                : const Icon(
+              Icons.radio_button_unchecked,
+              size: 18,
+              color: NotificationsScreen.blue,
+            ),
           ),
         ),
       ),
