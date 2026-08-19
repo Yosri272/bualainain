@@ -11,8 +11,12 @@ import 'home_screen.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
-  // خلفية الشاشة (رمادي فاتح)
-  static const Color backgroundColor = Color(0xFFE3E0E0);
+  // تدرج خلفية أنيق (كحلي - أزرق) بدل الرمادي الباهت
+  static const Color backgroundStart = Color(0xFF1E2A4A);
+  static const Color backgroundEnd = Color(0xFF3A5A8C);
+
+  // لون مميز للتفاصيل (ذهبي دافئ) يعطي إحساس بالانتماء والأصالة
+  static const Color accentColor = Color(0xFFE8C170);
 
   static const Duration logoAnimationDuration = Duration(milliseconds: 900);
   static const Duration branchAnimationDuration = Duration(milliseconds: 1400);
@@ -31,6 +35,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   late AnimationController _branchController; // لتفرّع "أفراد القبيلة"
   late Animation<double> _branchAnimation;
+
+  late AnimationController _glowController; // نبض خفيف حول اللوجو
+  late Animation<double> _glowAnimation;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
 
@@ -75,6 +82,16 @@ class _SplashScreenState extends State<SplashScreen>
     _branchAnimation = CurvedAnimation(
       parent: _branchController,
       curve: Curves.easeOutCubic,
+    );
+
+    // نبضة توهج خفيفة ومستمرة حول الشعار تعطي حيوية للتصميم
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+
+    _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
 
     _playIntroSound();
@@ -134,6 +151,7 @@ class _SplashScreenState extends State<SplashScreen>
     _navigationTimer?.cancel();
     _controller.dispose();
     _branchController.dispose();
+    _glowController.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -141,114 +159,206 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SplashScreen.backgroundColor,
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // منطقة اللوجو + الأفراد المتفرعة حواليه
-              SizedBox(
-                width: 260,
-                height: 260,
-                child: Stack(
-                  alignment: Alignment.center,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              SplashScreen.backgroundStart,
+              SplashScreen.backgroundEnd,
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            // زخرفة دائرية خفيفة في الخلفية تعطي عمق للتصميم
+            Positioned(
+              top: -80,
+              right: -60,
+              child: _buildBackgroundCircle(220),
+            ),
+            Positioned(
+              bottom: -100,
+              left: -80,
+              child: _buildBackgroundCircle(260),
+            ),
+
+            SafeArea(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // الأفراد بيتفرعوا ويظهروا حوالين المركز
-                    ..._members.map((m) => _buildMemberDot(m)),
+                    // منطقة اللوجو + الأفراد المتفرعة حواليه
+                    SizedBox(
+                      width: 260,
+                      height: 260,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // الأفراد بيتفرعوا ويظهروا حوالين المركز
+                          ..._members.map((m) => _buildMemberDot(m)),
 
-                    // الخط الواصل (يمثل روابط النسب) بيتحرك مع نفس الأنيميشن
-                    AnimatedBuilder(
-                      animation: _branchAnimation,
-                      builder: (context, child) {
-                        return CustomPaint(
-                          size: const Size(260, 260),
-                          painter: _BranchLinesPainter(
-                            progress: _branchAnimation.value,
-                            members: _members,
+                          // الخط الواصل (يمثل روابط النسب) بيتحرك مع نفس الأنيميشن
+                          AnimatedBuilder(
+                            animation: _branchAnimation,
+                            builder: (context, child) {
+                              return CustomPaint(
+                                size: const Size(260, 260),
+                                painter: _BranchLinesPainter(
+                                  progress: _branchAnimation.value,
+                                  members: _members,
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
 
-                    // الشعار في المنتصف
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.25),
-                                blurRadius: 16,
-                                spreadRadius: 2,
+                          // توهج ذهبي نابض خلف الشعار
+                          AnimatedBuilder(
+                            animation: _glowAnimation,
+                            builder: (context, child) {
+                              return Container(
+                                width: 130,
+                                height: 130,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: SplashScreen.accentColor
+                                          .withOpacity(
+                                          0.35 * _glowAnimation.value),
+                                      blurRadius: 40,
+                                      spreadRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+
+                          // الشعار في المنتصف
+                          FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: ScaleTransition(
+                              scale: _scaleAnimation,
+                              child: Container(
+                                width: 104,
+                                height: 104,
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      SplashScreen.accentColor,
+                                      SplashScreen.accentColor
+                                          .withOpacity(0.4),
+                                    ],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 20,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Container(
+                                    color: Colors.white,
+                                    child: Image.asset(
+                                      'assets/images/app_icon.png',
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return const Icon(
+                                          Icons.family_restroom,
+                                          size: 46,
+                                          color:
+                                          SplashScreen.backgroundEnd,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/images/app_icon.png',
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.family_restroom,
-                                  size: 50,
-                                  color: SplashScreen.backgroundColor,
-                                );
-                              },
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ShaderMask(
+                        shaderCallback: (bounds) => LinearGradient(
+                          colors: [
+                            SplashScreen.accentColor,
+                            Colors.white,
+                          ],
+                        ).createShader(bounds),
+                        child: const Text(
+                          'قبيلة آل عوينين',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Text(
+                        'اربط جذورك بأحبابك',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withOpacity(0.75),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 44),
+
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          color: SplashScreen.accentColor,
+                          strokeWidth: 2.6,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: const Text(
-                  'شجرة العائلة',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  'اربط جذورك بأحبابك',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white.withOpacity(0.85),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 36),
-              const SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBackgroundCircle(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.04),
       ),
     );
   }
@@ -278,18 +388,22 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 34,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white,
+                  border: Border.all(
+                    color: SplashScreen.accentColor.withOpacity(0.7),
+                    width: 1.4,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 6,
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
                     ),
                   ],
                 ),
                 child: const Icon(
                   Icons.person,
                   size: 18,
-                  color: SplashScreen.backgroundColor,
+                  color: SplashScreen.backgroundEnd,
                 ),
               ),
             ),
@@ -318,8 +432,8 @@ class _BranchLinesPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final Offset center = Offset(size.width / 2, size.height / 2);
     final Paint paint = Paint()
-      ..color = Colors.white.withOpacity(0.35)
-      ..strokeWidth = 1.5
+      ..color = SplashScreen.accentColor.withOpacity(0.45)
+      ..strokeWidth = 1.4
       ..style = PaintingStyle.stroke;
 
     const double radius = 100;
