@@ -253,6 +253,17 @@ class ProfileScreen extends StatelessWidget {
                     },
                   ),
                   _ProfileItem(
+                    title: 'شجرة العائلة',
+                    icon: const Icon(
+                      Icons.account_tree_outlined,
+                      size: 19,
+                      color: Color(0xff53617F),
+                    ),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/FamilyTreeScreen');
+                    },
+                  ),
+                  _ProfileItem(
                     title: 'إدارة التنبيهات',
                     icon: SvgPicture.asset(
                       'assets/icons/bell.svg',

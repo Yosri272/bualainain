@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'PendingApprovalScreen.dart';
+import 'family_tree_screen.dart';
 import 'firebase_options.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -37,6 +38,8 @@ import 'edit_profile_screen.dart';
 import 'manage_news_screen.dart';
 import 'manage_categories_screen.dart';
 import 'splash_screen.dart';
+import 'add_family_member_screen.dart';
+
 
 
 Future<void> main() async {
@@ -121,6 +124,8 @@ class MyApp extends StatelessWidget {
         '/manage-categories': (context) => const ManageCategoriesScreen(),
         '/news-search': (context) => const NewsSearchScreen(),
         '/splash': (context) => const SplashScreen(),
+        '/AddFamilyMemberScreen': (context) => const AddFamilyMemberScreen(),
+        '/FamilyTreeScreen': (context) => const FamilyTreeScreen(),
 
       },
     );
