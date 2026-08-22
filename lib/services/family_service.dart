@@ -30,4 +30,46 @@ class FamilyService {
     final snapshot = await _col.orderBy('generation').get();
     return snapshot.docs.map((d) => FamilyMember.fromDoc(d)).toList();
   }
+
+  Future<void> syncMemberFromUser(String uid, {bool skipStatusCheck = false}) async {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+
+    if (!userDoc.exists) return;
+
+    final data = userDoc.data()!;
+    final String status = data['status'] ?? 'pending';
+
+    if (!skipStatusCheck && status != 'approved') return;
+
+    final String fullName = [
+      data['firstName'],
+      data['secondName'],
+      data['thirdName'],
+      data['fourthName'],
+    ].where((e) => e != null && e.toString().trim().isNotEmpty).join(' ');
+
+    if (fullName.trim().isEmpty) return;
+
+    final existing = await _col.doc(uid).get();
+    final int generation = existing.exists
+        ? (existing.data()?['generation'] ?? 0)
+        : 0;
+
+    final String? existingFatherId =
+    existing.exists ? (existing.data()?['fatherId']) : null;
+
+    await _col.doc(uid).set({
+      'name': fullName,
+      'gender': data['gender'] ?? 'male',
+      'birthDate': data['birthDate'],
+      'fatherId': existingFatherId,
+      'generation': generation,
+      'linkedUserId': uid,
+      'updatedAt': FieldValue.serverTimestamp(),
+      if (!existing.exists) 'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
 }

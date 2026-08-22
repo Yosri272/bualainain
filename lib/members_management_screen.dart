@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'services/family_service.dart';
 
 class MembersManagementScreen extends StatelessWidget {
   const MembersManagementScreen({super.key});
@@ -45,77 +46,77 @@ class MembersManagementScreen extends StatelessWidget {
                   final users = snapshot.data!.docs;
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xffE6E6E6),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 20,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xffE6E6E6),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
 
-                          /// عنوان البطاقة
-                          Container(
-                            height: 56,
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: Color(0xffE6E6E6),
-                                  width: 1,
+                            /// عنوان البطاقة
+                            Container(
+                              height: 56,
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Color(0xffE6E6E6),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                "إدارة الأعضاء",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: textColor,
                                 ),
                               ),
                             ),
-                            child: const Text(
-                              "إدارة الأعضاء",
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                color: textColor,
+
+                            /// محتوى الجدول
+                            Padding(
+                              padding: const EdgeInsets.all(18),
+                              child: Column(
+                                children: [
+
+                                  const _TableHeader(),
+
+                                  const SizedBox(height: 12),
+
+                                  ...users.map((doc) {
+                                    final data = doc.data() as Map<String, dynamic>;
+
+                                    return _MemberRow(
+                                      docId: doc.id,
+                                      name: data['name'] ?? '',
+                                      phone: data['phone'] ?? '',
+                                    );
+                                  }),
+
+                                ],
                               ),
                             ),
-                          ),
-
-                          /// محتوى الجدول
-                          Padding(
-                            padding: const EdgeInsets.all(18),
-                            child: Column(
-                              children: [
-
-                                const _TableHeader(),
-
-                                const SizedBox(height: 12),
-
-                                ...users.map((doc) {
-                                  final data = doc.data() as Map<String, dynamic>;
-
-                                  return _MemberRow(
-                                    docId: doc.id,
-                                    name: data['name'] ?? '',
-                                    phone: data['phone'] ?? '',
-                                  );
-                                }),
-
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
+                          ],
+                        ),
+                      )
                   );
                 },
               ),
@@ -256,6 +257,9 @@ class _MemberRow extends StatelessWidget {
           .update({
         'status': 'approved',
       });
+
+      // مزامنة فورية مع شجرة العائلة بعد الموافقة
+      await FamilyService().syncMemberFromUser(docId, skipStatusCheck: true);
     }
   }
 

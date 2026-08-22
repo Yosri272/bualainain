@@ -16,11 +16,17 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final nameController = TextEditingController();
+  final firstNameController = TextEditingController();
+  final secondNameController = TextEditingController();
+  final thirdNameController = TextEditingController();
+  final fourthNameController = TextEditingController();
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
   final cityController = TextEditingController();
   final bioController = TextEditingController();
+
+  String? gender;
+  DateTime? birthDate;
 
   bool isLoading = true;
   bool isSaving = false;
@@ -31,6 +37,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     loadUserData();
+  }
+
+  String _formatDate(DateTime date) {
+    final String day = date.day.toString().padLeft(2, '0');
+    final String month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  Future<void> pickBirthDate() async {
+    final DateTime now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: birthDate ?? DateTime(now.year - 18, now.month, now.day),
+      firstDate: DateTime(now.year - 100),
+      lastDate: now,
+      builder: (context, child) {
+        return Directionality(textDirection: TextDirection.rtl, child: child!);
+      },
+    );
+    if (picked != null) setState(() => birthDate = picked);
   }
 
   Future<void> loadUserData() async {
@@ -49,11 +75,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (doc.exists) {
         final data = doc.data()!;
 
-        nameController.text = data['name'] ?? '';
+        firstNameController.text = data['firstName'] ?? '';
+        secondNameController.text = data['secondName'] ?? '';
+        thirdNameController.text = data['thirdName'] ?? '';
+        fourthNameController.text = data['fourthName'] ?? '';
         phoneController.text = data['phone'] ?? '';
         emailController.text = data['email'] ?? '';
         cityController.text = data['city'] ?? '';
         bioController.text = data['bio'] ?? '';
+        gender = data['gender'];
+
+        final Timestamp? bd = data['birthDate'];
+        if (bd != null) birthDate = bd.toDate();
       }
     } catch (e) {
       debugPrint("ERROR: $e");
@@ -67,20 +100,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> saveProfile() async {
-    if (nameController.text.trim().isEmpty) {
-      showMessage('الرجاء إدخال الاسم');
+    if (firstNameController.text.trim().isEmpty ||
+        secondNameController.text.trim().isEmpty ||
+        thirdNameController.text.trim().isEmpty ||
+        fourthNameController.text.trim().isEmpty) {
+      showMessage('الرجاء تعبئة الاسم كاملاً (الأول، الثاني، الثالث، الرابع)');
       return;
     }
 
     setState(() => isSaving = true);
 
     try {
+      final String fullName =
+          '${firstNameController.text.trim()} ${secondNameController.text.trim()} ${thirdNameController.text.trim()} ${fourthNameController.text.trim()}';
+
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': nameController.text.trim(),
+        'firstName': firstNameController.text.trim(),
+        'secondName': secondNameController.text.trim(),
+        'thirdName': thirdNameController.text.trim(),
+        'fourthName': fourthNameController.text.trim(),
+        'name': fullName,
         'phone': phoneController.text.trim(),
         'email': emailController.text.trim(),
         'city': cityController.text.trim(),
         'bio': bioController.text.trim(),
+        if (gender != null) 'gender': gender,
+        if (birthDate != null) 'birthDate': Timestamp.fromDate(birthDate!),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -128,7 +173,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    nameController.dispose();
+    firstNameController.dispose();
+    secondNameController.dispose();
+    thirdNameController.dispose();
+    fourthNameController.dispose();
     phoneController.dispose();
     emailController.dispose();
     cityController.dispose();
@@ -160,9 +208,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 14),
 
                     Text(
-                      nameController.text.isEmpty
+                      firstNameController.text.isEmpty
                           ? 'مستخدم'
-                          : nameController.text,
+                          : '${firstNameController.text} ${secondNameController.text}',
                       style: const TextStyle(
                         color: EditProfileScreen.textColor,
                         fontSize: 22,
@@ -173,11 +221,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 30),
 
                     _inputField(
-                      controller: nameController,
-                      label: 'الاسم الكامل',
+                      controller: firstNameController,
+                      label: 'الاسم الأول',
                       icon: Icons.person_outline,
                     ),
+                    const SizedBox(height: 14),
 
+                    _inputField(
+                      controller: secondNameController,
+                      label: 'الاسم الثاني',
+                      icon: Icons.person_outline,
+                    ),
+                    const SizedBox(height: 14),
+
+                    _inputField(
+                      controller: thirdNameController,
+                      label: 'الاسم الثالث',
+                      icon: Icons.person_outline,
+                    ),
+                    const SizedBox(height: 14),
+
+                    _inputField(
+                      controller: fourthNameController,
+                      label: 'الاسم الرابع',
+                      icon: Icons.person_outline,
+                    ),
                     const SizedBox(height: 14),
 
                     _inputField(
@@ -194,6 +262,92 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       label: 'البريد الإلكتروني',
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // الجنس
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField<String>(
+                          value: gender,
+                          isExpanded: true,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: EditProfileScreen.textColor,
+                          ),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isCollapsed: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          hint: const Text(
+                            'الجنس',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              color: EditProfileScreen.textColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'male',
+                              child: Text('ذكر', textAlign: TextAlign.right),
+                            ),
+                            DropdownMenuItem(
+                              value: 'female',
+                              child: Text('أنثى', textAlign: TextAlign.right),
+                            ),
+                          ],
+                          onChanged: (value) => setState(() => gender = value),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // تاريخ الميلاد
+                    InkWell(
+                      onTap: pickBirthDate,
+                      child: Container(
+                        height: 58,
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.cake_outlined,
+                              color: EditProfileScreen.textColor,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                birthDate != null
+                                    ? _formatDate(birthDate!)
+                                    : 'تاريخ الميلاد',
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: EditProfileScreen.titleColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 14),
@@ -408,38 +562,4 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final bool active;
-
-  const _NavItem({
-    required this.icon,
-    required this.title,
-    required this.active,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const Color activeColor = Color(0xff5D7FCB);
-    const Color normalColor = Color(0xff53617F);
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, color: active ? activeColor : normalColor, size: 25),
-        const SizedBox(height: 5),
-        Text(
-          title,
-          style: TextStyle(
-            color: active ? activeColor : normalColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
 }
