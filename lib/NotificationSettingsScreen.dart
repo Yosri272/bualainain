@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'widgets/custom_bottom_nav.dart';
+import 'services/session_service.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -20,6 +22,21 @@ class _NotificationSettingsScreenState
   bool congratulationsNotification = true;
   bool condolencesNotification = true;
 
+  String? currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSession();
+  }
+
+  Future<void> _loadSession() async {
+    final id = await SessionService.getUserId();
+    if (mounted) {
+      setState(() => currentUserId = id);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -31,21 +48,7 @@ class _NotificationSettingsScreenState
             _header(context),
             const SizedBox(height: 70),
 
-            const CircleAvatar(
-              radius: 38,
-              backgroundImage: AssetImage('assets/images/profile.png'),
-            ),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              'منصور البوعينين',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            _profileHeaderInfo(),
 
             const SizedBox(height: 45),
 
@@ -108,6 +111,68 @@ class _NotificationSettingsScreenState
           ],
         ),
       ),
+    );
+  }
+
+  Widget _profileHeaderInfo() {
+    if (currentUserId == null) {
+      return Column(
+        children: const [
+          CircleAvatar(
+            radius: 38,
+            backgroundImage: AssetImage('assets/images/profile.png'),
+          ),
+          SizedBox(height: 10),
+          Text(
+            'مستخدم',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        String name = 'مستخدم';
+        String? photoUrl;
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          name = data['name'] ?? 'مستخدم';
+          photoUrl = data['photoUrl'];
+        }
+
+        final ImageProvider avatarImage = (photoUrl != null && photoUrl.isNotEmpty)
+            ? NetworkImage(photoUrl)
+            : const AssetImage('assets/images/profile.png') as ImageProvider;
+
+        return Column(
+          children: [
+            CircleAvatar(
+              radius: 38,
+              backgroundColor: Colors.white,
+              backgroundImage: avatarImage,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              name,
+              style: const TextStyle(
+                color: textColor,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -11,11 +11,15 @@ import 'welcome_screen.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
-  static const Color backgroundStart = Color(0xFF111A2F);
-  static const Color backgroundMiddle = Color(0xFF1E3156);
-  static const Color backgroundEnd = Color(0xFF3E618E);
-  static const Color accentColor = Color(0xFFE8C170);
-  static const Color accentSoft = Color(0xFFF4D99B);
+  // تدرج الألوان الجديد: من الميدنت الفاتح أعلى الشاشة إلى الأزرق الغامق أسفلها
+  // (نفس تدرج mint/blue المستخدم في باقي شاشات التطبيق).
+  static const Color backgroundStart = Color(0xFFBFEAE0);
+  static const Color backgroundMiddle = Color(0xFF7FB3D9);
+  static const Color backgroundEnd = Color(0xFF4A6FB5);
+  static const Color accentColor = Color(0xFF5E7FCB);
+  static const Color accentSoft = Color(0xFF9FE2D4);
+  // لون غامق يستخدم للنص والخطوط عشان يبين بوضوح فوق الخلفية الفاتحة.
+  static const Color darkAccent = Color(0xFF243B66);
 
   static const Duration minSplashDuration = Duration(milliseconds: 3400);
 
@@ -223,18 +227,18 @@ class _SplashScreenState extends State<SplashScreen>
           return DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
                   Color.lerp(
                     SplashScreen.backgroundStart,
-                    const Color(0xFF172443),
+                    const Color(0xFFAEE3D6),
                     wave * 0.42,
                   )!,
                   SplashScreen.backgroundMiddle,
                   Color.lerp(
                     SplashScreen.backgroundEnd,
-                    const Color(0xFF284D77),
+                    const Color(0xFF3E5FA0),
                     (1 - wave) * 0.35,
                   )!,
                 ],
@@ -420,9 +424,9 @@ class _SplashScreenState extends State<SplashScreen>
               shaderCallback: (bounds) {
                 return const LinearGradient(
                   colors: [
-                    SplashScreen.accentSoft,
                     Colors.white,
-                    SplashScreen.accentColor,
+                    Colors.white,
+                    Colors.white,
                   ],
                 ).createShader(bounds);
               },
@@ -445,7 +449,7 @@ class _SplashScreenState extends State<SplashScreen>
                 fontSize: 14.5,
                 height: 1.5,
                 fontWeight: FontWeight.w500,
-                color: Colors.white.withOpacity(0.76),
+                color: Colors.white.withOpacity(0.9),
               ),
             ),
           ],
@@ -467,17 +471,17 @@ class _SplashScreenState extends State<SplashScreen>
           colors: [
             SplashScreen.accentSoft,
             SplashScreen.accentColor,
-            Color(0xFFA77C2C),
+            Color(0xFF3F5A9E),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.34),
+            color: Colors.black.withOpacity(0.22),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: SplashScreen.accentColor.withOpacity(0.18),
+            color: SplashScreen.accentColor.withOpacity(0.22),
             blurRadius: 18,
             spreadRadius: 2,
           ),
@@ -546,12 +550,12 @@ class _SplashScreenState extends State<SplashScreen>
                     ],
                   ),
                   border: Border.all(
-                    color: SplashScreen.accentColor.withOpacity(0.72),
-                    width: 1.35,
+                    color: SplashScreen.darkAccent.withOpacity(0.85),
+                    width: 1.6,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: SplashScreen.accentColor.withOpacity(0.12 * pulse),
+                      color: SplashScreen.accentColor.withOpacity(0.18 * pulse),
                       blurRadius: 12,
                       spreadRadius: 1,
                     ),
@@ -565,7 +569,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: const Icon(
                   Icons.person_rounded,
                   size: 20,
-                  color: SplashScreen.backgroundMiddle,
+                  color: SplashScreen.darkAccent,
                 ),
               ),
             ),
@@ -581,9 +585,9 @@ class _SplashScreenState extends State<SplashScreen>
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.025),
+        color: Colors.white.withOpacity(0.10),
         border: Border.all(
-          color: Colors.white.withOpacity(0.04),
+          color: Colors.white.withOpacity(0.14),
         ),
       ),
     );
@@ -610,13 +614,12 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 7,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: SplashScreen.accentColor.withOpacity(
-                      0.35 + 0.65 * pulse,
+                    color: Colors.white.withOpacity(
+                      0.45 + 0.55 * pulse,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                        SplashScreen.accentColor.withOpacity(0.18 * pulse),
+                        color: Colors.white.withOpacity(0.22 * pulse),
                         blurRadius: 8,
                       ),
                     ],
@@ -661,7 +664,7 @@ class _BranchLinesPainter extends CustomPainter {
     const double radius = SplashScreen._branchRadius;
 
     final Paint glowPaint = Paint()
-      ..color = SplashScreen.accentColor.withOpacity(0.10 + 0.06 * pulse)
+      ..color = Colors.white.withOpacity(0.20 + 0.10 * pulse)
       ..strokeWidth = 4.4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -690,11 +693,11 @@ class _BranchLinesPainter extends CustomPainter {
       final Paint linePaint = Paint()
         ..shader = LinearGradient(
           colors: [
-            SplashScreen.accentColor.withOpacity(0.08),
-            SplashScreen.accentSoft.withOpacity(0.62),
+            Colors.white.withOpacity(0.30),
+            Colors.white.withOpacity(0.95),
           ],
         ).createShader(Rect.fromPoints(center, end))
-        ..strokeWidth = 1.25
+        ..strokeWidth = 1.6
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round;
 
@@ -725,9 +728,9 @@ class _OrbitPainter extends CustomPainter {
     Rect.fromCircle(center: center, radius: size.width / 2 - 4);
 
     final Paint paint = Paint()
-      ..color = SplashScreen.accentColor.withOpacity(0.28 + 0.10 * pulse)
+      ..color = Colors.white.withOpacity(0.55 + 0.15 * pulse)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
+      ..strokeWidth = 1.4
       ..strokeCap = StrokeCap.round;
 
     const double sweep = math.pi * 0.34;
@@ -770,7 +773,7 @@ class _AmbientParticlesPainter extends CustomPainter {
       final Offset p = _points[i];
       final double phase = progress * math.pi * 2 + i * 0.9;
       final double dy = math.sin(phase) * 7;
-      final double opacity = 0.035 + ((math.sin(phase + 0.8) + 1) / 2) * 0.055;
+      final double opacity = 0.05 + ((math.sin(phase + 0.8) + 1) / 2) * 0.07;
       final double radius = 1.3 + (i % 3) * 0.55;
 
       canvas.drawCircle(

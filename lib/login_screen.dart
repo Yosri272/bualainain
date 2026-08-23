@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'services/session_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,54 +43,44 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      final userData = result.docs.first.data();
+      final userDoc = result.docs.first;
+      final userData = userDoc.data();
       final String role = userData['role'] ?? 'user';
       final String status = userData['status'] ?? 'pending';
 
-      // منع حسابات المسؤولين من الدخول عبر هذه الشاشة
       if (role == 'admin') {
         showMessage('هذا الحساب مخصص للمسؤولين، الرجاء استخدام دخول المسؤول');
         return;
       }
 
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      }
+
+      await SessionService.saveUserId(userDoc.id);
+
+      if (!mounted) return;
+
       if (status == 'pending') {
-        Navigator.pushReplacementNamed(
-          context,
-          '/pending-approval',
-        );
+        Navigator.pushReplacementNamed(context, '/pending-approval');
         return;
       }
 
       if (status == 'rejected') {
-        Navigator.pushReplacementNamed(
-          context,
-          '/rejected-account',
-        );
+        Navigator.pushReplacementNamed(context, '/rejected-account');
         return;
       }
 
-      if (status == 'approved') {
-        Navigator.pushReplacementNamed(
-          context,
-          '/otp',
-        );
-        return;
-      }
+      Navigator.pushReplacementNamed(context, '/otp');
     } catch (e) {
       showMessage('حدث خطأ أثناء تسجيل الدخول');
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -112,28 +104,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Column(
                   children: [
-                    const Text(
-                      'تسجيل الدخول',
-                      style: TextStyle(
-                        color: LoginScreen.textColor,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    const Text('تسجيل الدخول',
+                        style: TextStyle(color: LoginScreen.textColor, fontSize: 26, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 12),
-                    const Text(
-                      'أدخل رقم الجوال للمتابعة',
-                      style: TextStyle(
-                        color: LoginScreen.grayText,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    const Text('أدخل رقم الجوال للمتابعة',
+                        style: TextStyle(color: LoginScreen.grayText, fontSize: 18, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 45),
 
-                    _PhoneInputBox(
-                      controller: phoneController,
-                    ),
+                    _PhoneInputBox(controller: phoneController),
 
                     const SizedBox(height: 35),
 
@@ -145,26 +123,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(5),
                           gradient: const LinearGradient(
-                            colors: [
-                              LoginScreen.mint,
-                              LoginScreen.blue,
-                            ],
+                            colors: [LoginScreen.mint, LoginScreen.blue],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                           ),
                         ),
                         child: isLoading
-                            ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
-                            : const Text(
-                          'دخول',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('دخول',
+                            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                       ),
                     ),
 
@@ -173,27 +140,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'ليس لديك حساب؟',
-                          style: TextStyle(
-                            color: LoginScreen.grayText,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        const Text('ليس لديك حساب؟',
+                            style: TextStyle(color: LoginScreen.grayText, fontSize: 16, fontWeight: FontWeight.w600)),
                         const SizedBox(width: 6),
                         InkWell(
-                          onTap: () {
-                            Navigator.pushNamed(context, '/register');
-                          },
-                          child: const Text(
-                            'سجل الآن',
-                            style: TextStyle(
-                              color: LoginScreen.textColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
+                          onTap: () => Navigator.pushNamed(context, '/register'),
+                          child: const Text('سجل الآن',
+                              style: TextStyle(color: LoginScreen.textColor, fontSize: 16, fontWeight: FontWeight.w800)),
                         ),
                       ],
                     ),
@@ -218,41 +171,20 @@ class _LoginScreenState extends State<LoginScreen> {
             height: 120,
             width: double.infinity,
             decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/header_bg.png'),
-                fit: BoxFit.cover,
-              ),
+              image: DecorationImage(image: AssetImage('assets/images/header_bg.png'), fit: BoxFit.cover),
             ),
           ),
-
           Positioned(
             right: 24,
             top: 142,
             child: InkWell(
-              onTap: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/welcome',
-                      (route) => false,
-                );
-              },
+              onTap: () => Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
-                    color: LoginScreen.textColor,
-                  ),
+                  Icon(Icons.arrow_back_ios_new, size: 15, color: LoginScreen.textColor),
                   const SizedBox(width: 6),
-                  Text(
-                    'العودة',
-                    style: const TextStyle(
-                      color: LoginScreen.textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  Text('العودة', style: const TextStyle(color: LoginScreen.textColor, fontSize: 15, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -265,20 +197,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
 class _PhoneInputBox extends StatelessWidget {
   final TextEditingController controller;
-
-  const _PhoneInputBox({
-    required this.controller,
-  });
+  const _PhoneInputBox({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 62,
       padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: BoxDecoration(
-        color: const Color(0xffF6F6F6),
-        borderRadius: BorderRadius.circular(3),
-      ),
+      decoration: BoxDecoration(color: const Color(0xffF6F6F6), borderRadius: BorderRadius.circular(3)),
       child: Row(
         children: [
           Expanded(
@@ -289,11 +215,7 @@ class _PhoneInputBox extends StatelessWidget {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: 'رقم الجوال',
-                hintStyle: TextStyle(
-                  color: LoginScreen.textColor,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
+                hintStyle: TextStyle(color: LoginScreen.textColor, fontSize: 17, fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -302,10 +224,7 @@ class _PhoneInputBox extends StatelessWidget {
             'assets/icons/Call.svg',
             width: 19,
             height: 19,
-            colorFilter: const ColorFilter.mode(
-              LoginScreen.textColor,
-              BlendMode.srcIn,
-            ),
+            colorFilter: const ColorFilter.mode(LoginScreen.textColor, BlendMode.srcIn),
           ),
         ],
       ),

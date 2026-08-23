@@ -1,17 +1,37 @@
 import 'package:flutter/material.dart';
 import 'widgets/custom_bottom_nav.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
+import 'services/session_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   static const Color blue = Color(0xff5E7FCB);
   static const Color mint = Color(0xff9FE2D4);
   static const Color textColor = Color(0xff53617F);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String? currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSession();
+  }
+
+  Future<void> _loadSession() async {
+    final id = await SessionService.getUserId();
+    if (mounted) {
+      setState(() => currentUserId = id);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,12 +100,22 @@ class HomeScreen extends StatelessWidget {
 
           Align(
             alignment: Alignment.centerRight,
-            child: StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (context, authSnapshot) {
-                final user = authSnapshot.data;
-
-                if (user == null) {
+            child: currentUserId == null
+                ? const Text(
+              'مستخدم',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+                : StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentUserId)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData || !snapshot.data!.exists) {
                   return const Text(
                     'مستخدم',
                     style: TextStyle(
@@ -96,36 +126,17 @@ class HomeScreen extends StatelessWidget {
                   );
                 }
 
-                return StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.uid)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return const Text(
-                        'مستخدم',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      );
-                    }
+                final data = snapshot.data!.data() as Map<String, dynamic>;
+                final name = data['name'] ?? 'مستخدم';
 
-                    final data = snapshot.data!.data() as Map<String, dynamic>;
-                    final name = data['name'] ?? 'مستخدم';
-
-                    return Text(
-                      name,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 21,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    );
-                  },
+                return Text(
+                  name,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w700,
+                  ),
                 );
               },
             ),
@@ -135,7 +146,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// صندوق البحث - يفتح شاشة البحث المخصصة عند الضغط عليه
   Widget _searchBox(BuildContext context) {
     return Transform.translate(
       offset: const Offset(0, -38),
@@ -162,7 +172,6 @@ class HomeScreen extends StatelessWidget {
           child: const Row(
             children: [
               Icon(Icons.search, color: Color(0xffC9C9C9), size: 30),
-
               Text(
                 'اكتب ماتريد البحث عنه',
                 style: TextStyle(
@@ -188,7 +197,7 @@ class HomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(9),
           gradient: const LinearGradient(
-            colors: [mint, blue],
+            colors: [HomeScreen.mint, HomeScreen.blue],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -196,15 +205,11 @@ class HomeScreen extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-
-
-
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-
                   const Text(
                     'يمكنك مشاركة التطبيق مع أفراد عائلتك',
                     textAlign: TextAlign.right,
@@ -214,9 +219,7 @@ class HomeScreen extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
@@ -246,7 +249,6 @@ class HomeScreen extends StatelessWidget {
               color: Colors.white,
               size: 60,
             ),
-
             const SizedBox(width: 20),
           ],
         ),
@@ -259,12 +261,10 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-
-
           Text(
             title,
             style: const TextStyle(
-              color: textColor,
+              color: HomeScreen.textColor,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -283,18 +283,15 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _categories() {
     return SizedBox(
       height: 95,
       child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('categories')
-            .snapshots(),
+        stream: FirebaseFirestore.instance.collection('categories').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -302,10 +299,7 @@ class HomeScreen extends StatelessWidget {
               child: Text(
                 'حدث خطأ في تحميل الأقسام\n${snapshot.error}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.red, fontSize: 12),
               ),
             );
           }
@@ -314,44 +308,29 @@ class HomeScreen extends StatelessWidget {
             return const Center(
               child: Text(
                 'لا توجد أقسام',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: HomeScreen.textColor, fontSize: 13),
               ),
             );
           }
 
-          final List<QueryDocumentSnapshot> categories =
-              snapshot.data!.docs;
+          final List<QueryDocumentSnapshot> categories = snapshot.data!.docs;
 
           return ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(right: 20),
             itemCount: categories.length,
-            separatorBuilder: (_, __) {
-              return const SizedBox(width: 10);
-            },
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
-              final Map<String, dynamic> data =
-              categories[index].data()
-              as Map<String, dynamic>;
-
-              final String categoryName =
-              (data['name'] ?? '').toString().trim();
-
-              final String imageUrl =
-              (data['imageUrl'] ?? '').toString().trim();
+              final Map<String, dynamic> data = categories[index].data() as Map<String, dynamic>;
+              final String categoryName = (data['name'] ?? '').toString().trim();
+              final String imageUrl = (data['imageUrl'] ?? '').toString().trim();
 
               return Container(
                 width: 110,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   gradient: const LinearGradient(
-                    colors: [
-                      mint,
-                      blue,
-                    ],
+                    colors: [HomeScreen.mint, HomeScreen.blue],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -370,45 +349,24 @@ class HomeScreen extends StatelessWidget {
                         fit: BoxFit.contain,
                         color: Colors.white,
                         colorBlendMode: BlendMode.srcIn,
-                        filterQuality:
-                        FilterQuality.high,
-                        loadingBuilder: (
-                            BuildContext context,
-                            Widget child,
-                            ImageChunkEvent?
-                            loadingProgress,
-                            ) {
-                          if (loadingProgress == null) {
-                            return child;
-                          }
-
+                        filterQuality: FilterQuality.high,
+                        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                          if (loadingProgress == null) return child;
                           return const Center(
                             child: SizedBox(
                               width: 18,
                               height: 18,
-                              child:
-                              CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                             ),
                           );
                         },
-                        errorBuilder: (
-                            BuildContext context,
-                            Object error,
-                            StackTrace? stackTrace,
-                            ) {
+                        errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
                           return SvgPicture.asset(
                             'assets/icons/Vector.svg',
                             width: 40,
                             height: 40,
                             fit: BoxFit.contain,
-                            colorFilter:
-                            const ColorFilter.mode(
-                              Colors.white,
-                              BlendMode.srcIn,
-                            ),
+                            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                           );
                         },
                       )
@@ -417,20 +375,12 @@ class HomeScreen extends StatelessWidget {
                         width: 40,
                         height: 40,
                         fit: BoxFit.contain,
-                        colorFilter:
-                        const ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcIn,
-                        ),
+                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                       ),
                     ),
-
                     const SizedBox(height: 7),
-
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
                       child: Text(
                         categoryName,
                         textAlign: TextAlign.center,
@@ -453,6 +403,7 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _newsList() {
     return SizedBox(
       height: 250,
@@ -468,10 +419,7 @@ class HomeScreen extends StatelessWidget {
 
           if (snapshot.hasError) {
             return Center(
-              child: Text(
-                snapshot.error.toString(),
-                textAlign: TextAlign.center,
-              ),
+              child: Text(snapshot.error.toString(), textAlign: TextAlign.center),
             );
           }
 
@@ -488,22 +436,14 @@ class HomeScreen extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final data = news[index].data() as Map<String, dynamic>;
-
               final imageUrl = data['imageUrl'] ?? '';
-
               final Timestamp? createdAt = data['createdAt'];
-
-              final String formattedDate = createdAt != null
-                  ? DateFormat('dd.MM.yyyy').format(createdAt.toDate())
-                  : '';
+              final String formattedDate =
+              createdAt != null ? DateFormat('dd.MM.yyyy').format(createdAt.toDate()) : '';
 
               return InkWell(
                 onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/news-details',
-                    arguments: news[index].id,
-                  );
+                  Navigator.pushNamed(context, '/news-details', arguments: news[index].id);
                 },
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
@@ -529,25 +469,18 @@ class HomeScreen extends StatelessWidget {
                           imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) {
-                            return Image.asset(
-                              'assets/images/news.png',
-                              fit: BoxFit.cover,
-                            );
+                            return Image.asset('assets/images/news.png', fit: BoxFit.cover);
                           },
                         )
-                            : Image.asset(
-                          'assets/images/news.png',
-                          fit: BoxFit.cover,
-                        ),
+                            : Image.asset('assets/images/news.png', fit: BoxFit.cover),
                       ),
-
                       Container(
                         height: 105,
                         width: double.infinity,
                         padding: const EdgeInsets.all(10),
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [mint, blue],
+                            colors: [HomeScreen.mint, HomeScreen.blue],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                           ),
@@ -558,16 +491,14 @@ class HomeScreen extends StatelessWidget {
                             Text(
                               '${data['categoryName'] ?? ''} | ${data['city'] ?? ''} | $formattedDate',
                               style: const TextStyle(
-                                color: textColor,
+                                color: HomeScreen.textColor,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-
                             const SizedBox(height: 10),
-
                             Text(
                               data['title'] ?? '',
                               textAlign: TextAlign.right,
@@ -580,9 +511,6 @@ class HomeScreen extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-
-
-
                           ],
                         ),
                       ),

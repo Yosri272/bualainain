@@ -3,17 +3,37 @@ import 'widgets/custom_bottom_nav.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'services/session_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   static const Color textColor = Color(0xff53617F);
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSession();
+  }
+
+  Future<void> _loadSession() async {
+    final id = await SessionService.getUserId();
+    if (mounted) {
+      setState(() => currentUserId = id);
+    }
+  }
 
   Future<bool> _reauthenticate(BuildContext context, User user) async {
     final providerId =
     user.providerData.isNotEmpty ? user.providerData.first.providerId : '';
 
-    // حالة الدخول بالإيميل وكلمة المرور (الأدمن مثلاً)
     if (providerId == 'password') {
       final passwordController = TextEditingController();
 
@@ -66,7 +86,6 @@ class ProfileScreen extends StatelessWidget {
       }
     }
 
-    // حالة الدخول برقم الجوال / OTP أو أي طريقة أخرى
     debugPrint('⚠️ طريقة الدخول ($providerId) تحتاج تسجيل خروج ودخول جديد');
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,28 +105,19 @@ class ProfileScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          title: const Text(
-            'حذف الحساب',
-            textAlign: TextAlign.right,
-          ),
+          title: const Text('حذف الحساب', textAlign: TextAlign.right),
           content: const Text(
             'سيتم حذف حسابك وجميع بياناتك نهائيًا ولا يمكن التراجع عن هذا الإجراء. هل أنت متأكد؟',
             textAlign: TextAlign.right,
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('إلغاء'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(context, true),
               child: const Text('حذف نهائي'),
             ),
           ],
@@ -117,67 +127,58 @@ class ProfileScreen extends StatelessWidget {
 
     if (confirm != true) return;
 
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
+    if (currentUserId == null) {
       debugPrint('❌ لا يوجد مستخدم مسجل دخول حاليًا');
       return;
     }
 
-    debugPrint('UID الحالي: ${user.uid}');
-    debugPrint('طريقة الدخول: ${user.providerData.map((p) => p.providerId).join(", ")}');
+    final user = FirebaseAuth.instance.currentUser;
 
-    // إعادة المصادقة أولاً (مطلوبة من Firebase لعمليات الحذف)
-    final reauthenticated = await _reauthenticate(context, user);
-    if (!reauthenticated) return;
+    if (user != null && user.providerData.isNotEmpty &&
+        user.providerData.first.providerId == 'password') {
+      final reauthenticated = await _reauthenticate(context, user);
+      if (!reauthenticated) return;
+    }
 
     if (!context.mounted) return;
 
-    // إظهار مؤشر تحميل أثناء عملية الحذف
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      final uid = user.uid;
+      await FirebaseFirestore.instance.collection('users').doc(currentUserId).delete();
+      debugPrint('✅ تم حذف مستند Firestore بنجاح (users/$currentUserId)');
 
-      // 1. حذف بيانات المستخدم من Firestore
-      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-      debugPrint('✅ تم حذف مستند Firestore بنجاح (users/$uid)');
+      await SessionService.clear();
 
-      // 2. حذف حساب المستخدم من Firebase Authentication
-      await user.delete();
-      debugPrint('✅ تم حذف حساب Auth بنجاح');
+      try {
+        if (user != null && !user.isAnonymous) {
+          await user.delete();
+          debugPrint('✅ تم حذف حساب Auth بنجاح');
+        } else if (user != null) {
+          await FirebaseAuth.instance.signOut();
+        }
+      } catch (_) {}
 
       if (context.mounted) {
-        Navigator.pop(context); // إغلاق مؤشر التحميل
-
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/login',
-              (route) => false,
-        );
-
+        Navigator.pop(context);
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم حذف حسابك بنجاح')),
         );
       }
     } on FirebaseAuthException catch (e) {
       debugPrint('❌ FirebaseAuthException: ${e.code} - ${e.message}');
-
-      if (context.mounted) Navigator.pop(context); // إغلاق مؤشر التحميل
+      if (context.mounted) Navigator.pop(context);
 
       if (e.code == 'requires-recent-login') {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                'لأسباب أمنية، الرجاء تسجيل الخروج والدخول مرة أخرى ثم إعادة المحاولة',
-              ),
+              content: Text('لأسباب أمنية، الرجاء تسجيل الخروج والدخول مرة أخرى ثم إعادة المحاولة'),
             ),
           );
         }
@@ -191,7 +192,7 @@ class ProfileScreen extends StatelessWidget {
     } catch (e) {
       debugPrint('❌ خطأ غير متوقع: $e');
       if (context.mounted) {
-        Navigator.pop(context); // إغلاق مؤشر التحميل
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('حدث خطأ غير متوقع أثناء حذف الحساب: $e')),
         );
@@ -208,60 +209,35 @@ class ProfileScreen extends StatelessWidget {
         body: Column(
           children: [
             _header(context),
-
             const SizedBox(height: 70),
 
-            const CircleAvatar(
-              radius: 38,
-              backgroundImage: AssetImage(
-                'assets/images/profile.png',
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              'منصور البوعينين',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            _profileHeaderInfo(),
 
             const SizedBox(height: 25),
 
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                ),
-                children:  [
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: [
                   _ProfileItem(
                     title: 'تعديل الملف الشخصي',
                     icon: SvgPicture.asset(
                       'assets/icons/Profile.svg',
                       width: 19,
                       height: 19,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xff53617F),
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/edit-profile');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/edit-profile'),
                   ),
                   _ProfileItem(
                     title: 'شجرة العائلة',
-                    icon: const Icon(
-                      Icons.account_tree_outlined,
-                      size: 19,
-                      color: Color(0xff53617F),
+                    icon: SvgPicture.asset(
+                      'assets/icons/family_tree.svg',
+                      width: 19,
+                      height: 19,
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/FamilyTreeScreen');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/FamilyTreeScreen'),
                   ),
                   _ProfileItem(
                     title: 'إدارة التنبيهات',
@@ -269,14 +245,9 @@ class ProfileScreen extends StatelessWidget {
                       'assets/icons/bell.svg',
                       width: 19,
                       height: 19,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xff53617F),
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/NotificationSettings');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/NotificationSettings'),
                   ),
                   _ProfileItem(
                     title: 'تواصل معنا',
@@ -284,14 +255,9 @@ class ProfileScreen extends StatelessWidget {
                       'assets/icons/Call.svg',
                       width: 19,
                       height: 19,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xff53617F),
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/contact-us');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/contact-us'),
                   ),
                   _ProfileItem(
                     title: 'قيم التطبيق',
@@ -299,14 +265,9 @@ class ProfileScreen extends StatelessWidget {
                       'assets/icons/Star.svg',
                       width: 19,
                       height: 19,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xff53617F),
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/rate-app');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/rate-app'),
                   ),
                   _ProfileItem(
                     title: 'الأحكام والشروط',
@@ -314,14 +275,9 @@ class ProfileScreen extends StatelessWidget {
                       'assets/icons/document.svg',
                       width: 19,
                       height: 19,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xff53617F),
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/terms');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/terms'),
                   ),
                   _ProfileItem(
                     title: 'سياسة الخصوصية',
@@ -329,14 +285,9 @@ class ProfileScreen extends StatelessWidget {
                       'assets/icons/Paper.svg',
                       width: 19,
                       height: 19,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xff53617F),
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/privacy-policy');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/privacy-policy'),
                   ),
                   _ProfileItem(
                     title: 'حذف الحساب',
@@ -344,10 +295,7 @@ class ProfileScreen extends StatelessWidget {
                       'assets/icons/Delete.svg',
                       width: 19,
                       height: 19,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xff53617F),
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
                     onTap: () => _deleteAccount(context),
                   ),
@@ -357,38 +305,23 @@ class ProfileScreen extends StatelessWidget {
                       'assets/icons/Logout.svg',
                       width: 19,
                       height: 19,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xff53617F),
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
                     ),
                     onTap: () async {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (context) {
                           return AlertDialog(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            title: const Text(
-                              'تسجيل الخروج',
-                              textAlign: TextAlign.right,
-                            ),
-                            content: const Text(
-                              'هل أنت متأكد من رغبتك في تسجيل الخروج؟',
-                              textAlign: TextAlign.right,
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            title: const Text('تسجيل الخروج', textAlign: TextAlign.right),
+                            content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟', textAlign: TextAlign.right),
                             actions: [
                               TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context, false);
-                                },
+                                onPressed: () => Navigator.pop(context, false),
                                 child: const Text('إلغاء'),
                               ),
                               ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pop(context, true);
-                                },
+                                onPressed: () => Navigator.pop(context, true),
                                 child: const Text('خروج'),
                               ),
                             ],
@@ -398,13 +331,10 @@ class ProfileScreen extends StatelessWidget {
 
                       if (confirm == true) {
                         await FirebaseAuth.instance.signOut();
+                        await SessionService.clear();
 
                         if (context.mounted) {
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/login',
-                                (route) => false,
-                          );
+                          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
                         }
                       }
                     },
@@ -413,12 +343,72 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
 
-            const CustomBottomNav(
-              selectedIndex: 3,
-            ),
+            const CustomBottomNav(selectedIndex: 3),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _profileHeaderInfo() {
+    if (currentUserId == null) {
+      return Column(
+        children: const [
+          CircleAvatar(
+            radius: 38,
+            backgroundImage: AssetImage('assets/images/profile.png'),
+          ),
+          SizedBox(height: 10),
+          Text(
+            'مستخدم',
+            style: TextStyle(
+              color: ProfileScreen.textColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        String name = 'مستخدم';
+        String? photoUrl;
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          name = data['name'] ?? 'مستخدم';
+          photoUrl = data['photoUrl'];
+        }
+
+        final ImageProvider avatarImage = (photoUrl != null && photoUrl.isNotEmpty)
+            ? NetworkImage(photoUrl)
+            : const AssetImage('assets/images/profile.png') as ImageProvider;
+
+        return Column(
+          children: [
+            CircleAvatar(
+              radius: 38,
+              backgroundColor: Colors.white,
+              backgroundImage: avatarImage,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              name,
+              style: const TextStyle(
+                color: ProfileScreen.textColor,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -428,16 +418,13 @@ class ProfileScreen extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage(
-            'assets/images/header_bg.png',
-          ),
+          image: AssetImage('assets/images/header_bg.png'),
           fit: BoxFit.cover,
         ),
       ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-
           Positioned(
             right: 24,
             bottom: -45,
@@ -446,24 +433,16 @@ class ProfileScreen extends StatelessWidget {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 15,
-                    color: textColor,
-                  ),
+                  Icon(Icons.arrow_back_ios_new, size: 15, color: ProfileScreen.textColor),
                   SizedBox(width: 6),
-
                   Text(
                     'العودة',
                     style: TextStyle(
-                      color: textColor,
+                      color: ProfileScreen.textColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-
-
-
                 ],
               ),
             ),
@@ -473,6 +452,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
+
 class _ProfileItem extends StatelessWidget {
   final String title;
   final Widget icon;
@@ -493,9 +473,7 @@ class _ProfileItem extends StatelessWidget {
         child: Row(
           children: [
             icon,
-
             const SizedBox(width: 24),
-
             Expanded(
               child: Text(
                 title,
@@ -507,15 +485,11 @@ class _ProfileItem extends StatelessWidget {
                 ),
               ),
             ),
-
             SvgPicture.asset(
               'assets/icons/back.svg',
               width: 19,
               height: 19,
-              colorFilter: const ColorFilter.mode(
-                Color(0xff53617F),
-                BlendMode.srcIn,
-              ),
+              colorFilter: const ColorFilter.mode(Color(0xff53617F), BlendMode.srcIn),
             ),
           ],
         ),
