@@ -118,14 +118,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: FamilyTreeScreen.blue,
-          onPressed: () async {
-            await Navigator.pushNamed(context, '/AddFamilyMemberScreen');
-            loadTree();
-          },
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
       ),
     );
   }
