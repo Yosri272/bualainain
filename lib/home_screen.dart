@@ -54,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     _categories(),
                     const SizedBox(height: 28),
-                    _sectionTitle('اخبار ومناسبات البوعينين'),
+                    _sectionTitle('اخبار ومناسبات بوعينين'),
                     const SizedBox(height: 16),
                     _newsList(),
                     const SizedBox(height: 20),

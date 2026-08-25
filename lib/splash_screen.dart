@@ -431,7 +431,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ).createShader(bounds);
               },
               child: const Text(
-                'اسرة البوعينين',
+                'اسرة بوعينين',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 31,

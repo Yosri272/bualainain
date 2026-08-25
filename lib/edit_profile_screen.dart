@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'services/family_service.dart';
 import 'services/session_service.dart';
+import 'models/family_member.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -36,6 +37,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? pickedImageFile;
   String? currentUserId;
 
+  // اختيار الأب المقترح
+  String? selectedFatherId;
+  List<FamilyMember> allMembers = [];
+  bool isLoadingMembers = true;
+
   bool isLoading = true;
   bool isSaving = false;
   bool isUploadingImage = false;
@@ -49,6 +55,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _init() async {
     currentUserId = await SessionService.getUserId();
     await loadUserData();
+    await loadFamilyMembers();
+  }
+
+  Future<void> loadFamilyMembers() async {
+    try {
+      final members = await FamilyService().getAllMembers();
+      // نستبعد المستخدم نفسه عشان ما يقدر يختار نفسه كأب لنفسه
+      allMembers = members.where((m) => m.id != currentUserId).toList();
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .get();
+
+      selectedFatherId = userDoc.data()?['pendingFatherId'];
+    } catch (e) {
+      debugPrint("ERROR loading family members: $e");
+    } finally {
+      if (mounted) setState(() => isLoadingMembers = false);
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -178,6 +204,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final String fullName =
           '${firstNameController.text.trim()} ${secondNameController.text.trim()} ${thirdNameController.text.trim()} ${fourthNameController.text.trim()}';
 
+      // ملاحظة: pendingFatherId هنا مجرد "اقتراح" من العضو، ولا يُطبَّق
+      // فعلياً على شجرة family_members إلا بعد موافقة المشرف من
+      // شاشة إدارة الأعضاء (والتي تستدعي syncMemberFromUser).
       await FirebaseFirestore.instance.collection('users').doc(currentUserId).set({
         'firstName': firstNameController.text.trim(),
         'secondName': secondNameController.text.trim(),
@@ -192,10 +221,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (photoUrl != null) 'photoUrl': photoUrl,
         'city': cityController.text.trim(),
         'bio': bioController.text.trim(),
+        'pendingFatherId': selectedFatherId,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-
-      await FamilyService().syncMemberFromUser(currentUserId!);
 
       if (!mounted) return;
 
@@ -339,6 +367,67 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ],
                           onChanged: (value) => setState(() => maritalStatus = value),
                         ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // اختيار الأب في شجرة العائلة
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: isLoadingMembers
+                          ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                          : DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField<String?>(
+                          value: selectedFatherId,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down, color: EditProfileScreen.textColor),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isCollapsed: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          hint: const Text(
+                            'اختر الأب في شجرة العائلة',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(color: EditProfileScreen.textColor, fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('بدون أب (جذر العائلة)', textAlign: TextAlign.right),
+                            ),
+                            ...allMembers.map(
+                                  (m) => DropdownMenuItem<String?>(
+                                value: m.id,
+                                child: Text(m.name, textAlign: TextAlign.right),
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) => setState(() => selectedFatherId = value),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'سيتم ربطك بالأب المختار بعد موافقة المشرف',
+                        style: TextStyle(color: EditProfileScreen.textColor, fontSize: 11.5),
                       ),
                     ),
 

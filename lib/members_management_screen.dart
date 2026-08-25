@@ -108,6 +108,7 @@ class MembersManagementScreen extends StatelessWidget {
                                       docId: doc.id,
                                       name: data['name'] ?? '',
                                       phone: data['phone'] ?? '',
+                                      pendingFatherId: data['pendingFatherId'],
                                     );
                                   }),
 
@@ -206,6 +207,13 @@ class _TableHeader extends StatelessWidget {
           ),
         ),
         Expanded(
+          flex: 3,
+          child: Text(
+            'الأب المقترح',
+            textAlign: TextAlign.center,
+          ),
+        ),
+        Expanded(
           flex: 2,
           child: Text(
             'قبول',
@@ -228,11 +236,13 @@ class _MemberRow extends StatelessWidget {
   final String docId;
   final String name;
   final String phone;
+  final String? pendingFatherId;
 
   const _MemberRow({
     required this.docId,
     required this.name,
     required this.phone,
+    this.pendingFatherId,
   });
 
   Future<void> approveUser(BuildContext context) async {
@@ -258,7 +268,9 @@ class _MemberRow extends StatelessWidget {
         'status': 'approved',
       });
 
-      // مزامنة فورية مع شجرة العائلة بعد الموافقة
+      // مزامنة فورية مع شجرة العائلة بعد الموافقة.
+      // fatherId يُقرأ تلقائياً داخل syncMemberFromUser من
+      // حقل pendingFatherId اللي حدده العضو من بروفايله.
       await FamilyService().syncMemberFromUser(docId, skipStatusCheck: true);
     }
   }
@@ -312,6 +324,22 @@ class _MemberRow extends StatelessWidget {
             child: Text(
               phone,
               textAlign: TextAlign.center,
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: FutureBuilder<String?>(
+              future: FamilyService().getMemberName(pendingFatherId),
+              builder: (context, snapshot) {
+                final text = pendingFatherId == null
+                    ? 'بدون (جذر)'
+                    : (snapshot.data ?? '...');
+                return Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12.5),
+                );
+              },
             ),
           ),
           Expanded(

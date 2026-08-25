@@ -3,6 +3,7 @@ import '../models/family_member.dart';
 
 class FamilyService {
   final _col = FirebaseFirestore.instance.collection('family_members');
+  final _usersCol = FirebaseFirestore.instance.collection('users');
 
   Future<void> addMember({
     required String name,
@@ -31,11 +32,14 @@ class FamilyService {
     return snapshot.docs.map((d) => FamilyMember.fromDoc(d)).toList();
   }
 
-  Future<void> syncMemberFromUser(String uid, {bool skipStatusCheck = false}) async {
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .get();
+  /// يزامن بيانات مستخدم من users إلى family_members.
+  /// fatherId يُقرأ تلقائياً من حقل pendingFatherId في مستند المستخدم
+  /// (وهو الحقل اللي بيحدده العضو نفسه من شاشة تعديل البروفايل).
+  Future<void> syncMemberFromUser(
+      String uid, {
+        bool skipStatusCheck = false,
+      }) async {
+    final userDoc = await _usersCol.doc(uid).get();
 
     if (!userDoc.exists) return;
 
@@ -53,23 +57,35 @@ class FamilyService {
 
     if (fullName.trim().isEmpty) return;
 
-    final existing = await _col.doc(uid).get();
-    final int generation = existing.exists
-        ? (existing.data()?['generation'] ?? 0)
-        : 0;
+    final String? fatherId = data['pendingFatherId'];
 
-    final String? existingFatherId =
-    existing.exists ? (existing.data()?['fatherId']) : null;
+    int generation = 0;
+    if (fatherId != null) {
+      final fatherDoc = await _col.doc(fatherId).get();
+      generation = (fatherDoc.data()?['generation'] ?? 0) + 1;
+    }
+
+    final existing = await _col.doc(uid).get();
 
     await _col.doc(uid).set({
       'name': fullName,
       'gender': data['gender'] ?? 'male',
       'birthDate': data['birthDate'],
-      'fatherId': existingFatherId,
+      'photoUrl': data['photoUrl'],
+      'fatherId': fatherId,
       'generation': generation,
       'linkedUserId': uid,
       'updatedAt': FieldValue.serverTimestamp(),
       if (!existing.exists) 'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  /// يجيب اسم عضو معين من family_members (يُستخدم لعرض اسم الأب المقترح
+  /// في شاشة إدارة الأعضاء قبل الموافقة).
+  Future<String?> getMemberName(String? memberId) async {
+    if (memberId == null) return null;
+    final doc = await _col.doc(memberId).get();
+    if (!doc.exists) return null;
+    return doc.data()?['name'];
   }
 }
