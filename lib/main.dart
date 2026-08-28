@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:device_preview/device_preview.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -65,30 +65,81 @@ Future<void> setupFirebaseMessaging() async {
   );
 }
 
+// حركة انتقال يدوية: الصفحة الجديدة دايمًا تدخل من الشمال،
+// والصفحة القديمة تنسحب شوي لليمين. مضمونة على كل الأجهزة
+// بدون الاعتماد على انعكاس تلقائي قد ما يشتغل بكل الحالات.
+class _RTLPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _RTLPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+      PageRoute<T> route,
+      BuildContext context,
+      Animation<double> animation,
+      Animation<double> secondaryAnimation,
+      Widget child,
+      ) {
+    final incomingTween = Tween<Offset>(
+      begin: const Offset(-1.0, 0.0),
+      end: Offset.zero,
+    ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+    final outgoingTween = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0.25, 0.0),
+    ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+    return SlideTransition(
+      position: animation.drive(incomingTween),
+      child: SlideTransition(
+        position: secondaryAnimation.drive(outgoingTween),
+        child: child,
+      ),
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return  MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      useInheritedMediaQuery: true,
+      // اللغة والاتجاه
       locale: const Locale('ar'),
+      supportedLocales: const [
+        Locale('ar'),
+        Locale('en'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
 
+      // نلف كل التطبيق (بما فيه الـ Navigator) باتجاه RTL
+      // بدون DevicePreview عشان ما يتعارض مع الاتجاه ولا الحركات الطبيعية
       builder: (context, child) {
         return Directionality(
           textDirection: TextDirection.rtl,
-          child: DevicePreview.appBuilder(
-            context,
-            child,
-          ),
+          child: child!,
         );
       },
 
       theme: ThemeData(
         textTheme: GoogleFonts.ibmPlexSansArabicTextTheme(),
         fontFamily: GoogleFonts.ibmPlexSansArabic().fontFamily,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: _RTLPageTransitionsBuilder(),
+            TargetPlatform.iOS: _RTLPageTransitionsBuilder(),
+            TargetPlatform.macOS: _RTLPageTransitionsBuilder(),
+            TargetPlatform.windows: _RTLPageTransitionsBuilder(),
+            TargetPlatform.linux: _RTLPageTransitionsBuilder(),
+          },
+        ),
       ),
 
       initialRoute: '/splash',

@@ -59,6 +59,30 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   FamilyMember _memberOf(Node node) =>
       members.firstWhere((m) => m.id == node.key!.value);
 
+  String? _fatherNameOf(FamilyMember member) {
+    if (member.fatherId == null) return null;
+    final matches = members.where((m) => m.id == member.fatherId);
+    if (matches.isEmpty) return null;
+    return matches.first.name;
+  }
+
+  List<FamilyMember> _childrenOf(FamilyMember member) {
+    return members.where((m) => m.fatherId == member.id).toList();
+  }
+
+  void _openMemberDetails(FamilyMember member) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _MemberDetailsSheet(
+        member: member,
+        fatherName: _fatherNameOf(member),
+        children: _childrenOf(member),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -111,7 +135,10 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                   ),
                   builder: (Node node) {
                     final member = _memberOf(node);
-                    return _MemberCard(member: member);
+                    return _MemberCard(
+                      member: member,
+                      onTap: () => _openMemberDetails(member),
+                    );
                   },
                 ),
               ),
@@ -209,36 +236,370 @@ class _EmptyState extends StatelessWidget {
 
 class _MemberCard extends StatelessWidget {
   final FamilyMember member;
-  const _MemberCard({required this.member});
+  final VoidCallback onTap;
+
+  const _MemberCard({required this.member, required this.onTap});
+
+  /// يعرض الاسم الأول + اسم الأب + اسم الجد (أول 3 كلمات من الاسم الكامل)
+  /// بدل الاسم الكامل بكل الأربع مقاطع، عشان الكارد يفضل صغير ومقروء.
+  String get _displayName {
+    final words = member.name.trim().split(RegExp(r'\s+'));
+    if (words.length <= 3) return member.name;
+    return words.take(3).join(' ');
+  }
 
   @override
   Widget build(BuildContext context) {
     final isMale = member.gender == 'male';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: isMale ? const Color(0xffE8EEFB) : const Color(0xffE8F9F3),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isMale ? FamilyTreeScreen.blue : FamilyTreeScreen.mint,
-          width: 1.5,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isMale ? const Color(0xffE8EEFB) : const Color(0xffE8F9F3),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isMale ? FamilyTreeScreen.blue : FamilyTreeScreen.mint,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isMale ? Icons.male : Icons.female,
+              color: FamilyTreeScreen.textColor,
+              size: 18,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _displayName,
+              style: const TextStyle(
+                color: FamilyTreeScreen.textColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    );
+  }
+}
+
+class _MemberDetailsSheet extends StatelessWidget {
+  final FamilyMember member;
+  final String? fatherName;
+  final List<FamilyMember> children;
+
+  const _MemberDetailsSheet({
+    required this.member,
+    required this.fatherName,
+    required this.children,
+  });
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  int? _ageOf(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  String _maritalStatusText(String value) {
+    switch (value) {
+      case 'single':
+        return 'أعزب';
+      case 'married':
+        return 'متزوج';
+      case 'divorced':
+        return 'مطلق';
+      case 'widowed':
+        return 'أرمل';
+      default:
+        return value;
+    }
+  }
+
+  String _occupationText(String value) {
+    switch (value) {
+      case 'student':
+        return 'طالب';
+      case 'government_employee':
+        return 'موظف حكومي';
+      case 'private_employee':
+        return 'موظف قطاع خاص';
+      default:
+        return value;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMale = member.gender == 'male';
+    final avatarColor = isMale ? FamilyTreeScreen.blue : FamilyTreeScreen.mint;
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.35,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 30),
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xffE0E0E0),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+
+                Center(
+                  child: CircleAvatar(
+                    radius: 42,
+                    backgroundColor: avatarColor.withValues(alpha: 0.15),
+                    backgroundImage: (member.photoUrl != null &&
+                        member.photoUrl!.isNotEmpty)
+                        ? NetworkImage(member.photoUrl!)
+                        : null,
+                    child: (member.photoUrl == null ||
+                        member.photoUrl!.isEmpty)
+                        ? Icon(
+                      isMale ? Icons.male : Icons.female,
+                      color: avatarColor,
+                      size: 40,
+                    )
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                Center(
+                  child: Text(
+                    member.name,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: FamilyTreeScreen.textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                Center(
+                  child: Text(
+                    isMale ? 'ذكر' : 'أنثى',
+                    style: const TextStyle(
+                      color: FamilyTreeScreen.grayText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+                if (member.bio != null && member.bio!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffF7F8FC),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      member.bio!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: FamilyTreeScreen.textColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 26),
+
+                if (member.birthDate != null)
+                  _DetailRow(
+                    icon: Icons.cake_outlined,
+                    label: 'تاريخ الميلاد',
+                    value:
+                    '${_formatDate(member.birthDate!)}'
+                        '${_ageOf(member.birthDate!) != null ? ' (${_ageOf(member.birthDate!)} سنة)' : ''}',
+                  ),
+
+                if (member.maritalStatus != null &&
+                    member.maritalStatus!.trim().isNotEmpty)
+                  _DetailRow(
+                    icon: Icons.favorite_border_rounded,
+                    label: 'الحالة الاجتماعية',
+                    value: _maritalStatusText(member.maritalStatus!),
+                  ),
+
+                if (member.occupation != null &&
+                    member.occupation!.trim().isNotEmpty)
+                  _DetailRow(
+                    icon: Icons.work_outline_rounded,
+                    label: 'الوظيفة',
+                    value: _occupationText(member.occupation!),
+                  ),
+
+                if (member.city != null && member.city!.trim().isNotEmpty)
+                  _DetailRow(
+                    icon: Icons.location_on_outlined,
+                    label: 'المدينة',
+                    value: member.city!,
+                  ),
+
+                if (fatherName != null)
+                  _DetailRow(
+                    icon: Icons.arrow_upward_rounded,
+                    label: 'الأب',
+                    value: fatherName!,
+                  ),
+
+                _DetailRow(
+                  icon: Icons.account_tree_outlined,
+                  label: 'الجيل',
+                  value: '${member.generation}',
+                ),
+
+                if (member.showPhoneInTree &&
+                    member.phone != null &&
+                    member.phone!.trim().isNotEmpty)
+                  _DetailRow(
+                    icon: Icons.phone_outlined,
+                    label: 'رقم الجوال',
+                    value: member.phone!,
+                  ),
+
+                if (children.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  const Divider(color: Color(0xffEDEDED)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'الأبناء (${children.length})',
+                    style: const TextStyle(
+                      color: FamilyTreeScreen.textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ...children.map(
+                        (child) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            child.gender == 'male'
+                                ? Icons.male
+                                : Icons.female,
+                            size: 16,
+                            color: FamilyTreeScreen.grayText,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              child.name,
+                              style: const TextStyle(
+                                color: FamilyTreeScreen.textColor,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isMale ? Icons.male : Icons.female,
-            color: FamilyTreeScreen.textColor,
-            size: 18,
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xffF3F5FA),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: FamilyTreeScreen.blue),
           ),
-          const SizedBox(height: 4),
-          Text(
-            member.name,
-            style: const TextStyle(
-              color: FamilyTreeScreen.textColor,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: FamilyTreeScreen.grayText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: FamilyTreeScreen.textColor,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

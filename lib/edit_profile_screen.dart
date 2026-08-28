@@ -32,6 +32,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String? gender;
   String? maritalStatus;
+  String? occupation;
   DateTime? birthDate;
   String? photoUrl;
   File? pickedImageFile;
@@ -61,13 +62,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> loadFamilyMembers() async {
     try {
       final members = await FamilyService().getAllMembers();
-      // نستبعد المستخدم نفسه عشان ما يقدر يختار نفسه كأب لنفسه
-      allMembers = members.where((m) => m.id != currentUserId).toList();
 
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUserId)
           .get();
+
+      final String myFamilyName =
+      (userDoc.data()?['fourthName'] ?? fourthNameController.text)
+          .toString()
+          .trim();
+
+      // نستبعد المستخدم نفسه، ونعرض فقط أعضاء نفس اسم العائلة
+      // (الاسم الرابع) عشان الأب يكون منطقياً ومن نفس العائلة.
+      allMembers = members.where((m) {
+        if (m.id == currentUserId) return false;
+        if (myFamilyName.isEmpty) return true; // لو اسم العائلة لسه فاضي، نعرض الكل مؤقتاً
+        return (m.familyName ?? '').trim() == myFamilyName;
+      }).toList();
 
       selectedFatherId = userDoc.data()?['pendingFatherId'];
     } catch (e) {
@@ -75,6 +87,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } finally {
       if (mounted) setState(() => isLoadingMembers = false);
     }
+  }
+
+  /// النص المعروض لكل خيار في دروب داون اختيار الأب:
+  /// "الاسم - اسم العائلة" (مثال: محمد علي - الحربي)
+  String _fatherOptionLabel(FamilyMember member) {
+    final String familyName = (member.familyName ?? '').trim();
+    if (familyName.isEmpty) return member.name;
+    return '${member.name} - $familyName';
   }
 
   String _formatDate(DateTime date) {
@@ -165,6 +185,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         bioController.text = data['bio'] ?? '';
         gender = data['gender'];
         maritalStatus = data['maritalStatus'];
+        occupation = data['occupation'];
         photoUrl = data['photoUrl'];
 
         final Timestamp? bd = data['birthDate'];
@@ -189,7 +210,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         secondNameController.text.trim().isEmpty ||
         thirdNameController.text.trim().isEmpty ||
         fourthNameController.text.trim().isEmpty) {
-      showMessage('الرجاء تعبئة الاسم كاملاً (الأول، الثاني، الثالث، الرابع)');
+      showMessage('الرجاء تعبئة الاسم كاملاً (الأول، الثاني، الثالث، اسم العائلة)');
       return;
     }
 
@@ -217,6 +238,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'email': emailController.text.trim(),
         'gender': gender,
         if (maritalStatus != null) 'maritalStatus': maritalStatus,
+        if (occupation != null) 'occupation': occupation,
         if (birthDate != null) 'birthDate': Timestamp.fromDate(birthDate!),
         if (photoUrl != null) 'photoUrl': photoUrl,
         'city': cityController.text.trim(),
@@ -301,7 +323,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 14),
                     _inputField(controller: thirdNameController, label: 'الاسم الثالث', icon: Icons.person_outline),
                     const SizedBox(height: 14),
-                    _inputField(controller: fourthNameController, label: 'الاسم الرابع', icon: Icons.person_outline),
+                    _inputField(controller: fourthNameController, label: 'اسم العائلة', icon: Icons.person_outline),
                     const SizedBox(height: 14),
                     _inputField(controller: phoneController, label: 'رقم الجوال', icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
                     const SizedBox(height: 14),
@@ -372,6 +394,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     const SizedBox(height: 14),
 
+                    // الوظيفة
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField<String>(
+                          value: occupation,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down, color: EditProfileScreen.textColor),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isCollapsed: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          hint: const Text('الوظيفة', textAlign: TextAlign.right,
+                              style: TextStyle(color: EditProfileScreen.textColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                          items: const [
+                            DropdownMenuItem(value: 'student', child: Text('طالب', textAlign: TextAlign.right)),
+                            DropdownMenuItem(value: 'government_employee', child: Text('موظف حكومي', textAlign: TextAlign.right)),
+                            DropdownMenuItem(value: 'private_employee', child: Text('موظف قطاع خاص', textAlign: TextAlign.right)),
+                          ],
+                          onChanged: (value) => setState(() => occupation = value),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
                     // اختيار الأب في شجرة العائلة
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -414,7 +468,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ...allMembers.map(
                                   (m) => DropdownMenuItem<String?>(
                                 value: m.id,
-                                child: Text(m.name, textAlign: TextAlign.right),
+                                child: Text(
+                                  _fatherOptionLabel(m),
+                                  textAlign: TextAlign.right,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
                           ],
@@ -486,9 +544,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           Container(
             height: 120,
             width: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(image: AssetImage('assets/images/header_bg.png'), fit: BoxFit.cover),
-            ),
+            decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('assets/images/header_bg.png'), fit: BoxFit.cover)),
           ),
           Positioned(
             right: 24,

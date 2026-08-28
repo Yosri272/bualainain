@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -28,6 +29,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   DateTime? birthDate;
   bool agree = false;
   bool isLoading = false;
+
+  // هل يوافق المستخدم على إظهار رقم جواله في شجرة العائلة
+  bool showPhoneInTree = false;
 
   String _formatDate(DateTime date) {
     final String day = date.day.toString().padLeft(2, '0');
@@ -114,6 +118,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
       showMessage('الرجاء تعبئة جميع البيانات');
       return;
     }
+    final String phone = phoneController.text.trim();
+
+    if (phone.length != 10) {
+      showMessage('رقم الجوال يجب أن يكون 10 أرقام');
+      return;
+    }
+    final existingUser = await FirebaseFirestore.instance
+        .collection('users')
+        .where('phone', isEqualTo: phone)
+        .limit(1)
+        .get();
+
+    if (existingUser.docs.isNotEmpty) {
+      showMessage('رقم الجوال مسجل مسبقاً');
+      return;
+    }
 
     try {
       setState(() => isLoading = true);
@@ -143,6 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'fourthName': fourthNameController.text.trim(),
         'name': fullName,
         'phone': phoneController.text.trim(),
+        'showPhoneInTree': showPhoneInTree,
         'email': enteredEmail, // يبقى فارغًا لو ما أدخله المستخدم
         'gender': gender,
         'birthDate': Timestamp.fromDate(birthDate!),
@@ -275,7 +296,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     _InputBox(
                       controller: fourthNameController,
-                      hint: 'الإسم الرابع',
+                      hint: 'اسم العائلة',
                       icon: SvgPicture.asset(
                         'assets/icons/Profile.svg',
                         width: 20,
@@ -291,6 +312,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     _InputBox(
                       controller: phoneController,
                       hint: 'رقم الجوال',
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
                       icon: SvgPicture.asset(
                         'assets/icons/Call.svg',
                         width: 20,
@@ -301,7 +327,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+
+                    // شيك بوكس: إظهار رقم الجوال في شجرة العائلة
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: showPhoneInTree,
+                            onChanged: (value) {
+                              setState(() {
+                                showPhoneInTree = value ?? false;
+                              });
+                            },
+                            side: const BorderSide(
+                              color: Color(0xffD8D8D8),
+                              width: 1.5,
+                            ),
+                          ),
+                          const Expanded(
+                            child: Text(
+                              'إظهار رقم جوالي لأفراد العائلة في شجرة العائلة',
+                              style: TextStyle(
+                                color: RegisterScreen.grayText,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
 
                     _InputBox(
                       controller: emailController,
@@ -566,6 +624,7 @@ class _InputBox extends StatelessWidget {
   final Widget icon;
   final bool obscureText;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _InputBox({
     required this.controller,
@@ -573,6 +632,7 @@ class _InputBox extends StatelessWidget {
     required this.icon,
     this.obscureText = false,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   @override
@@ -590,6 +650,7 @@ class _InputBox extends StatelessWidget {
             child: TextField(
               controller: controller,
               keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
               obscureText: obscureText,
               textAlign: TextAlign.right,
               textDirection: TextDirection.rtl,

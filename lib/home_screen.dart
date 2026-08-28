@@ -322,79 +322,94 @@ class _HomeScreenState extends State<HomeScreen> {
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final Map<String, dynamic> data = categories[index].data() as Map<String, dynamic>;
+              final String categoryId = categories[index].id;
               final String categoryName = (data['name'] ?? '').toString().trim();
               final String imageUrl = (data['imageUrl'] ?? '').toString().trim();
 
-              return Container(
-                width: 110,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  gradient: const LinearGradient(
-                    colors: [HomeScreen.mint, HomeScreen.blue],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+              return InkWell(
+                borderRadius: BorderRadius.circular(10),
+                // عند الضغط على الفئة -> ينتقل لصفحة الأخبار مفلترة على هذي الفئة
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/news',
+                    arguments: {
+                      'categoryId': categoryId,
+                      'categoryName': categoryName,
+                    },
+                  );
+                },
+                child: Container(
+                  width: 110,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: const LinearGradient(
+                      colors: [HomeScreen.mint, HomeScreen.blue],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: imageUrl.isNotEmpty
-                          ? Image.network(
-                        imageUrl,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
                         width: 40,
                         height: 40,
-                        fit: BoxFit.contain,
-                        color: Colors.white,
-                        colorBlendMode: BlendMode.srcIn,
-                        filterQuality: FilterQuality.high,
-                        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                            child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            ),
-                          );
-                        },
-                        errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
-                          return SvgPicture.asset(
-                            'assets/icons/Vector.svg',
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.contain,
-                            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                          );
-                        },
-                      )
-                          : SvgPicture.asset(
-                        'assets/icons/Vector.svg',
-                        width: 40,
-                        height: 40,
-                        fit: BoxFit.contain,
-                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      child: Text(
-                        categoryName,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        child: imageUrl.isNotEmpty
+                            ? Image.network(
+                          imageUrl,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
                           color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2,
+                          colorBlendMode: BlendMode.srcIn,
+                          filterQuality: FilterQuality.high,
+                          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              ),
+                            );
+                          },
+                          errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
+                            return SvgPicture.asset(
+                              'assets/icons/Vector.svg',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                            );
+                          },
+                        )
+                            : SvgPicture.asset(
+                          'assets/icons/Vector.svg',
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
+                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 7),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        child: Text(
+                          categoryName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

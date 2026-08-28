@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -814,11 +816,15 @@ class _NotificationItemState extends State<_NotificationItem> {
     }
   }
 
-  /// الضغط على البطاقة نفسها: فتح الخبر فقط (لو نوعه news).
-  /// لا يغيّر حالة القراءة إطلاقًا - القراءة تتم فقط
-  /// من زر/أيقونة "تحديد كمقروء" الصريحة.
+  /// الضغط على البطاقة نفسها:
+  /// 1) يسجّل الإشعار كمقروء فوراً (لأي نوع إشعار).
+  /// 2) لو نوعه news يفتح صفحة الخبر المرتبط.
+  /// 3) لأي نوع آخر، يكتفي بتحديد القراءة فقط.
   Future<void> _handleTap() async {
     if (isOpening) return;
+
+    // تسجيل القراءة أولاً، بغض النظر عن نوع الإشعار.
+    unawaited(_markAsRead());
 
     if (widget.type != 'news') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1050,18 +1056,14 @@ class _NotificationItemState extends State<_NotificationItem> {
               ),
 
               /*
-               زر "تحديد كمقروء" الصريح.
-
-               وضعناه داخل InkWell/Material مستقل حتى لا يفتح
-               الخبر أو يشغّل onTap الخاص بالبطاقة عند الضغط عليه -
-               فلاتر يعطي أولوية الإيماءة لأعمق ودجت قابل للضغط.
+               مؤشر "مقروء / غير مقروء" فقط - بدون زر تفاعلي مستقل،
+               لأن الضغط على البطاقة نفسها بيسجّل القراءة الآن.
               */
               const SizedBox(width: 6),
 
-              _MarkAsReadButton(
+              _ReadStatusIndicator(
                 isRead: widget.isRead,
                 isLoading: isMarkingRead,
-                onTap: _markAsRead,
               ),
             ],
           ),
@@ -1071,57 +1073,41 @@ class _NotificationItemState extends State<_NotificationItem> {
   }
 }
 
-class _MarkAsReadButton extends StatelessWidget {
+class _ReadStatusIndicator extends StatelessWidget {
   final bool isRead;
   final bool isLoading;
-  final Future<bool> Function() onTap;
 
-  const _MarkAsReadButton({
+  const _ReadStatusIndicator({
     required this.isRead,
     required this.isLoading,
-    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (isRead) {
-      // إشعار مقروء بالفعل - لا حاجة لزر تفاعلي، مؤشر ثابت فقط.
+    if (isLoading) {
       return const Padding(
-        padding: EdgeInsets.only(top: 4),
-        child: Icon(
-          Icons.check_circle,
-          size: 20,
-          color: Color(0xffC7CEDC),
+        padding: EdgeInsets.all(6),
+        child: SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: NotificationsScreen.blue,
+          ),
         ),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: isLoading ? null : onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: isLoading
-                ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: NotificationsScreen.blue,
-              ),
-            )
-                : const Icon(
-              Icons.radio_button_unchecked,
-              size: 18,
-              color: NotificationsScreen.blue,
-            ),
-          ),
-        ),
+      padding: const EdgeInsets.only(top: 4),
+      child: Icon(
+        isRead
+            ? Icons.check_circle
+            : Icons.radio_button_unchecked,
+        size: 20,
+        color: isRead
+            ? const Color(0xffC7CEDC)
+            : NotificationsScreen.blue,
       ),
     );
   }
