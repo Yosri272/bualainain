@@ -416,7 +416,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               style: TextStyle(color: EditProfileScreen.textColor, fontSize: 14, fontWeight: FontWeight.w600)),
                           items: const [
                             DropdownMenuItem(value: 'student', child: Text('طالب', textAlign: TextAlign.right)),
-                            DropdownMenuItem(value: 'government_employee', child: Text('موظف حكومي', textAlign: TextAlign.right)),
+                            DropdownMenuItem(value: 'government_employee', child: Text('موظف قطاع حكومي', textAlign: TextAlign.right)),
                             DropdownMenuItem(value: 'private_employee', child: Text('موظف قطاع خاص', textAlign: TextAlign.right)),
                           ],
                           onChanged: (value) => setState(() => occupation = value),

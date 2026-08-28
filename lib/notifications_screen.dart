@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
+import 'services/session_service.dart';
 import 'widgets/custom_bottom_nav.dart';
 
 enum NotificationFilter {
@@ -35,8 +35,81 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   NotificationFilter selectedFilter = NotificationFilter.all;
 
-  String get currentUserId {
-    return FirebaseAuth.instance.currentUser?.uid ?? '';
+  // هوية المستخدم تُقرأ من SessionService (نفس الطريقة المستخدمة في
+  // باقي شاشات التطبيق) وليس من FirebaseAuth.instance.currentUser،
+  // لأن جلسة الدخول في هذا التطبيق تُدار عبر SessionService.
+  String currentUserId = '';
+  bool isSessionLoaded = false;
+
+  // تفضيلات الإشعارات المفعّلة لهذا المستخدم (من notification_settings).
+  // القيم الافتراضية تطابق القيم الافتراضية في شاشة إعدادات الإشعارات.
+  Map<String, bool> _prefs = {
+    'news': true,
+    'events': false,
+    'congratulations': true,
+    'condolences': true,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUserId();
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    final id = await SessionService.getUserId();
+    if (mounted) {
+      setState(() {
+        currentUserId = id ?? '';
+      });
+    }
+
+    if (id != null) {
+      await _loadPreferences(id);
+    }
+
+    if (mounted) {
+      setState(() => isSessionLoaded = true);
+    }
+  }
+
+  Future<void> _loadPreferences(String userId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('notification_settings')
+          .doc(userId)
+          .get();
+
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        setState(() {
+          _prefs = {
+            'news': data['news'] ?? _prefs['news']!,
+            'events': data['events'] ?? _prefs['events']!,
+            'congratulations':
+            data['congratulations'] ?? _prefs['congratulations']!,
+            'condolences': data['condolences'] ?? _prefs['condolences']!,
+          };
+        });
+      }
+    } catch (e) {
+      debugPrint('خطأ أثناء تحميل تفضيلات الإشعارات: $e');
+    }
+  }
+
+  /// يستبعد الإشعارات من نوع عطّله المستخدم من إعداداته.
+  /// الأنواع غير المعروفة (مثل type فارغ) تظل ظاهرة دائماً.
+  List<QueryDocumentSnapshot> _applyPreferences(
+      List<QueryDocumentSnapshot> notifications,
+      ) {
+    return notifications.where((document) {
+      final data = document.data() as Map<String, dynamic>;
+      final type = data['type']?.toString() ?? '';
+
+      if (!_prefs.containsKey(type)) return true;
+
+      return _prefs[type] ?? true;
+    }).toList();
   }
 
   DateTime? _getCreatedAt(Map<String, dynamic> data) {
@@ -145,7 +218,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             const SizedBox(height: 18),
 
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
+              child: !isSessionLoaded
+                  ? const Center(
+                child: CircularProgressIndicator(
+                  color: NotificationsScreen.blue,
+                ),
+              )
+                  : StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('notifications')
                     .snapshots(),
@@ -170,7 +249,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     );
                   }
 
-                  final notifications = snapshot.data!.docs.toList();
+                  final notifications =
+                  _applyPreferences(snapshot.data!.docs.toList());
 
                   /*
                    ترتيب أحدث إشعار في الأعلى.

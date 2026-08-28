@@ -268,7 +268,7 @@ class _MemberCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isMale ? Icons.male : Icons.female,
+              isMale ? Icons.man : Icons.woman,
               color: FamilyTreeScreen.textColor,
               size: 18,
             ),
@@ -335,7 +335,7 @@ class _MemberDetailsSheet extends StatelessWidget {
       case 'student':
         return 'طالب';
       case 'government_employee':
-        return 'موظف حكومي';
+        return 'موظف قطاع حكومي';
       case 'private_employee':
         return 'موظف قطاع خاص';
       default:
@@ -388,7 +388,7 @@ class _MemberDetailsSheet extends StatelessWidget {
                     child: (member.photoUrl == null ||
                         member.photoUrl!.isEmpty)
                         ? Icon(
-                      isMale ? Icons.male : Icons.female,
+                      isMale ? Icons.man : Icons.woman, // يمكنك تغييرها حسب رغبتك
                       color: avatarColor,
                       size: 40,
                     )
@@ -445,13 +445,11 @@ class _MemberDetailsSheet extends StatelessWidget {
 
                 const SizedBox(height: 26),
 
-                if (member.birthDate != null)
+                if (member.birthDate != null && _ageOf(member.birthDate!) != null)
                   _DetailRow(
                     icon: Icons.cake_outlined,
-                    label: 'تاريخ الميلاد',
-                    value:
-                    '${_formatDate(member.birthDate!)}'
-                        '${_ageOf(member.birthDate!) != null ? ' (${_ageOf(member.birthDate!)} سنة)' : ''}',
+                    label: 'العمر',
+                    value: '${_ageOf(member.birthDate!)} سنة',
                   ),
 
                 if (member.maritalStatus != null &&

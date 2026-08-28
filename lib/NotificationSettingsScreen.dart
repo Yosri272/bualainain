@@ -17,12 +17,18 @@ class _NotificationSettingsScreenState
     extends State<NotificationSettingsScreen> {
   static const Color textColor = Color(0xff53617F);
 
+  // القيم الافتراضية تُستخدم فقط لو المستخدم ما ضبطش تفضيلاته من قبل
+  // (يعني أول مرة يفتح فيها هذه الشاشة، قبل أي حفظ في notification_settings).
   bool newsNotification = true;
   bool eventsNotification = false;
   bool congratulationsNotification = true;
   bool condolencesNotification = true;
 
   String? currentUserId;
+  bool isLoadingPrefs = true;
+
+  CollectionReference<Map<String, dynamic>> get _prefsCol =>
+      FirebaseFirestore.instance.collection('notification_settings');
 
   @override
   void initState() {
@@ -34,6 +40,51 @@ class _NotificationSettingsScreenState
     final id = await SessionService.getUserId();
     if (mounted) {
       setState(() => currentUserId = id);
+    }
+    if (id != null) {
+      await _loadPreferences(id);
+    } else if (mounted) {
+      setState(() => isLoadingPrefs = false);
+    }
+  }
+
+  Future<void> _loadPreferences(String userId) async {
+    try {
+      final doc = await _prefsCol.doc(userId).get();
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        setState(() {
+          newsNotification = data['news'] ?? true;
+          eventsNotification = data['events'] ?? false;
+          congratulationsNotification = data['congratulations'] ?? true;
+          condolencesNotification = data['condolences'] ?? true;
+        });
+      }
+    } catch (e) {
+      debugPrint('خطأ أثناء تحميل تفضيلات الإشعارات: $e');
+    } finally {
+      if (mounted) setState(() => isLoadingPrefs = false);
+    }
+  }
+
+  /// يحفظ التفضيل فورًا في Firestore بمجرد تغييره (بدون زر حفظ منفصل).
+  Future<void> _updatePreference(String key, bool value) async {
+    if (currentUserId == null) return;
+
+    try {
+      await _prefsCol.doc(currentUserId).set({
+        key: value,
+        'userId': currentUserId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('خطأ أثناء حفظ تفضيل الإشعارات: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر حفظ التغيير، حاول مرة أخرى')),
+        );
+      }
     }
   }
 
@@ -53,7 +104,9 @@ class _NotificationSettingsScreenState
             const SizedBox(height: 45),
 
             Expanded(
-              child: Padding(
+              child: isLoadingPrefs
+                  ? const Center(child: CircularProgressIndicator())
+                  : Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 34),
                 child: Column(
                   children: [
@@ -61,9 +114,8 @@ class _NotificationSettingsScreenState
                       title: 'تنبيهات الأخبار',
                       value: newsNotification,
                       onChanged: (value) {
-                        setState(() {
-                          newsNotification = value;
-                        });
+                        setState(() => newsNotification = value);
+                        _updatePreference('news', value);
                       },
                     ),
 
@@ -73,9 +125,8 @@ class _NotificationSettingsScreenState
                       title: 'تنبيهات المناسبات',
                       value: eventsNotification,
                       onChanged: (value) {
-                        setState(() {
-                          eventsNotification = value;
-                        });
+                        setState(() => eventsNotification = value);
+                        _updatePreference('events', value);
                       },
                     ),
 
@@ -85,9 +136,8 @@ class _NotificationSettingsScreenState
                       title: 'تنبيهات التهاني والتبريكات',
                       value: congratulationsNotification,
                       onChanged: (value) {
-                        setState(() {
-                          congratulationsNotification = value;
-                        });
+                        setState(() => congratulationsNotification = value);
+                        _updatePreference('congratulations', value);
                       },
                     ),
 
@@ -97,9 +147,8 @@ class _NotificationSettingsScreenState
                       title: 'تنبيهات التعازي والمواساة',
                       value: condolencesNotification,
                       onChanged: (value) {
-                        setState(() {
-                          condolencesNotification = value;
-                        });
+                        setState(() => condolencesNotification = value);
+                        _updatePreference('condolences', value);
                       },
                     ),
                   ],
