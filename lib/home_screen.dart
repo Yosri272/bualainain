@@ -7,7 +7,12 @@ import 'dart:ui' as ui;
 import 'services/session_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool showBottomNav;
+
+  const HomeScreen({
+    super.key,
+    this.showBottomNav = true,
+  });
 
   static const Color blue = Color(0xff5E7FCB);
   static const Color mint = Color(0xff9FE2D4);
@@ -62,7 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            const CustomBottomNav(selectedIndex: 0),
+            if (widget.showBottomNav)
+              const CustomBottomNav(
+                selectedIndex: 0,
+              ),
           ],
         ),
       ),

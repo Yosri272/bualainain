@@ -6,14 +6,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/session_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool showBottomNav;
+  final VoidCallback? onBackToHome;
+
+  const ProfileScreen({
+    super.key,
+    this.showBottomNav = true,
+    this.onBackToHome,
+  });
 
   static const Color textColor = Color(0xff53617F);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
-
 class _ProfileScreenState extends State<ProfileScreen> {
   String? currentUserId;
 
@@ -343,7 +349,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            const CustomBottomNav(selectedIndex: 3),
+            if (widget.showBottomNav)
+              const CustomBottomNav(
+                selectedIndex: 3,
+              ),
           ],
         ),
       ),
@@ -429,7 +438,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             right: 24,
             bottom: -45,
             child: InkWell(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                if (widget.onBackToHome != null) {
+                  widget.onBackToHome!();
+                  return;
+                }
+
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(
+                    context,
+                    '/home',
+                  );
+                }
+              },
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

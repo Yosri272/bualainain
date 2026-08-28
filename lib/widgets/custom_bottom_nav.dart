@@ -5,11 +5,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CustomBottomNav extends StatelessWidget {
   final int selectedIndex;
+  final ValueChanged<int>? onTap;
 
   const CustomBottomNav({
     super.key,
     this.selectedIndex = 0,
+    this.onTap,
   });
+
 
   static const Color activeColor = Color(0xff5D7FCB);
   static const Color navColor = Color(0xff53617F);
@@ -58,12 +61,19 @@ class CustomBottomNav extends StatelessWidget {
               return Expanded(
                 child: InkWell(
                   onTap: () {
-                    if (!isSelected) {
-                      Navigator.pushReplacementNamed(
-                        context,
-                        items[index]['route'] as String,
-                      );
+                    if (isSelected) {
+                      return;
                     }
+
+                    if (onTap != null) {
+                      onTap!(index);
+                      return;
+                    }
+
+                    Navigator.pushReplacementNamed(
+                      context,
+                      items[index]['route'] as String,
+                    );
                   },
                   splashColor: Colors.transparent,
                   highlightColor: Colors.transparent,

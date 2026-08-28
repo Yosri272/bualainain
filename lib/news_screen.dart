@@ -5,8 +5,14 @@ import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 
 class NewsScreen extends StatelessWidget {
-  const NewsScreen({super.key});
+  final bool showBottomNav;
+  final VoidCallback? onBackToHome;
 
+  const NewsScreen({
+    super.key,
+    this.showBottomNav = true,
+    this.onBackToHome,
+  });
   static const Color textColor = Color(0xff53617F);
   static const Color blue = Color(0xff5E7FCB);
   static const Color mint = Color(0xff9FE2D4);
@@ -29,10 +35,14 @@ class NewsScreen extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: InkWell(
                   onTap: () {
-                    Navigator.pushNamedAndRemoveUntil(
+                    if (onBackToHome != null) {
+                      onBackToHome!();
+                      return;
+                    }
+
+                    Navigator.pushReplacementNamed(
                       context,
                       '/home',
-                          (route) => false,
                     );
                   },
                   child: const Row(
@@ -200,8 +210,10 @@ class NewsScreen extends StatelessWidget {
               ),
             ),
 
-            const CustomBottomNav(selectedIndex: 1),
-          ],
+            if (showBottomNav)
+              const CustomBottomNav(
+                selectedIndex: 1,
+              ),          ],
         ),
       ),
     );

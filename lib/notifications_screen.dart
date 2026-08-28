@@ -13,7 +13,14 @@ enum NotificationFilter {
 }
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  final bool showBottomNav;
+  final VoidCallback? onBackToHome;
+
+  const NotificationsScreen({
+    super.key,
+    this.showBottomNav = true,
+    this.onBackToHome,
+  });
 
   static const Color textColor = Color(0xff53617F);
   static const Color titleColor = Color(0xff2E3547);
@@ -278,9 +285,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
 
-            const CustomBottomNav(
-              selectedIndex: 2,
-            ),
+            if (widget.showBottomNav)
+              const CustomBottomNav(
+                selectedIndex: 2,
+              ),
           ],
         ),
       ),
@@ -325,10 +333,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: () {
-            Navigator.pushNamedAndRemoveUntil(
+            if (widget.onBackToHome != null) {
+              widget.onBackToHome!();
+              return;
+            }
+
+            Navigator.pushReplacementNamed(
               context,
               '/home',
-                  (route) => false,
             );
           },
           child: const Padding(

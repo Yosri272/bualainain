@@ -39,7 +39,7 @@ import 'manage_news_screen.dart';
 import 'manage_categories_screen.dart';
 import 'splash_screen.dart';
 import 'add_family_member_screen.dart';
-
+import 'main_navigation_screen.dart';
 
 
 Future<void> main() async {
@@ -151,12 +151,25 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/admin-login': (context) => const AdminLoginScreen(),
         '/otp': (context) => const OtpScreen(),
-        '/': (context) => const HomeScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/notifications': (context) => const NotificationsScreen(),
+        '/': (context) => const MainNavigationScreen(
+          initialIndex: 0,
+        ),
+        '/home': (context) => const MainNavigationScreen(
+          initialIndex: 0,
+        ),
+
+        '/news': (context) => const MainNavigationScreen(
+          initialIndex: 1,
+        ),
+
+        '/notifications': (context) => const MainNavigationScreen(
+          initialIndex: 2,
+        ),
+
+        '/profile': (context) => const MainNavigationScreen(
+          initialIndex: 3,
+        ),
         '/NotificationSettings': (context) => const NotificationSettingsScreen(),
-        '/news': (context) => const NewsScreen(),
         '/news-details': (context) => const NewsDetailsScreen(),
         '/add-news': (context) => const AddNewsScreen(),
         '/add-member': (context) => const AddMemberScreen(),
