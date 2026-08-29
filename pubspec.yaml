@@ -57,6 +57,7 @@ dev_dependencies:
   flutter_svg: ^2.2.0
   google_fonts: ^8.1.0
   flutter_launcher_icons: ^0.14.4
+  url_launcher: ^6.3.0
 
 flutter_launcher_icons:
   android: true

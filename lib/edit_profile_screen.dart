@@ -43,6 +43,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   List<FamilyMember> allMembers = [];
   bool isLoadingMembers = true;
 
+  // هل يريد المستخدم إخفاء رقم جواله عن شجرة العائلة
+  bool hidePhoneInTree = false;
+
   bool isLoading = true;
   bool isSaving = false;
   bool isUploadingImage = false;
@@ -82,6 +85,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }).toList();
 
       selectedFatherId = userDoc.data()?['pendingFatherId'];
+
+      // حماية من كراش الدروب داون: لو الأب المحفوظ مسبقاً (pendingFatherId)
+      // غير موجود ضمن allMembers بعد الفلترة (مثلاً بسبب اختلاف اسم
+      // العائلة أو أي تفاوت في البيانات)، نضيفه يدوياً للقائمة طالما هو
+      // موجود أصلاً كعضو في family_members - وإلا نصفّر الاختيار.
+      if (selectedFatherId != null) {
+        final alreadyInList =
+        allMembers.any((m) => m.id == selectedFatherId);
+
+        if (!alreadyInList) {
+          final matches = members.where((m) => m.id == selectedFatherId);
+
+          if (matches.isNotEmpty) {
+            allMembers = [matches.first, ...allMembers];
+          } else {
+            // الأب المحفوظ لم يعد له مستند في family_members أصلاً.
+            selectedFatherId = null;
+          }
+        }
+      }
     } catch (e) {
       debugPrint("ERROR loading family members: $e");
     } finally {
@@ -187,6 +210,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         maritalStatus = data['maritalStatus'];
         occupation = data['occupation'];
         photoUrl = data['photoUrl'];
+        hidePhoneInTree = data['hidePhoneInTree'] ?? false;
 
         final Timestamp? bd = data['birthDate'];
         if (bd != null) birthDate = bd.toDate();
@@ -235,6 +259,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'fourthName': fourthNameController.text.trim(),
         'name': fullName,
         'phone': phoneController.text.trim(),
+        'hidePhoneInTree': hidePhoneInTree,
         'email': emailController.text.trim(),
         'gender': gender,
         if (maritalStatus != null) 'maritalStatus': maritalStatus,
@@ -326,7 +351,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _inputField(controller: fourthNameController, label: 'اسم العائلة', icon: Icons.person_outline),
                     const SizedBox(height: 14),
                     _inputField(controller: phoneController, label: 'رقم الجوال', icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
-                    const SizedBox(height: 14),
+
+                    // شيك بوكس: إظهار رقم الجوال في شجرة العائلة
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: hidePhoneInTree,
+                            onChanged: (value) {
+                              setState(() {
+                                hidePhoneInTree = value ?? false;
+                              });
+                            },
+                            side: const BorderSide(
+                              color: Color(0xffD8D8D8),
+                              width: 1.5,
+                            ),
+                          ),
+                          const Expanded(
+                            child: Text(
+                              'إخفاء رقم جوالي عن أفراد العائلة في شجرة العائلة',
+                              style: TextStyle(
+                                color: EditProfileScreen.textColor,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
                     _inputField(controller: emailController, label: 'البريد الإلكتروني', icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
                     const SizedBox(height: 14),
 

@@ -9,7 +9,7 @@ class FamilyMember {
   final String? fatherId;
   final int generation;
   final String? phone;
-  final bool showPhoneInTree;
+  final bool hidePhoneInTree;
   final String? maritalStatus;
   final String? city;
   final String? bio;
@@ -25,7 +25,7 @@ class FamilyMember {
     this.fatherId,
     required this.generation,
     this.phone,
-    this.showPhoneInTree = false,
+    this.hidePhoneInTree = false,
     this.maritalStatus,
     this.city,
     this.bio,
@@ -44,7 +44,7 @@ class FamilyMember {
       fatherId: data['fatherId'],
       generation: data['generation'] ?? 0,
       phone: data['phone'],
-      showPhoneInTree: data['showPhoneInTree'] ?? false,
+      hidePhoneInTree: data['hidePhoneInTree'] ?? false,
       maritalStatus: data['maritalStatus'],
       city: data['city'],
       bio: data['bio'],
@@ -61,7 +61,7 @@ class FamilyMember {
     'fatherId': fatherId,
     'generation': generation,
     'phone': phone,
-    'showPhoneInTree': showPhoneInTree,
+    'hidePhoneInTree': hidePhoneInTree,
     'maritalStatus': maritalStatus,
     'city': city,
     'bio': bio,

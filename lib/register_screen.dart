@@ -30,8 +30,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool agree = false;
   bool isLoading = false;
 
-  // هل يوافق المستخدم على إظهار رقم جواله في شجرة العائلة
-  bool showPhoneInTree = false;
+  // هل يريد المستخدم إخفاء رقم جواله عن شجرة العائلة
+  bool hidePhoneInTree = false;
 
   String _formatDate(DateTime date) {
     final String day = date.day.toString().padLeft(2, '0');
@@ -163,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'fourthName': fourthNameController.text.trim(),
         'name': fullName,
         'phone': phoneController.text.trim(),
-        'showPhoneInTree': showPhoneInTree,
+        'hidePhoneInTree': hidePhoneInTree,
         'email': enteredEmail, // يبقى فارغًا لو ما أدخله المستخدم
         'gender': gender,
         'birthDate': Timestamp.fromDate(birthDate!),
@@ -328,16 +328,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
 
-                    // شيك بوكس: إظهار رقم الجوال في شجرة العائلة
+                    // شيك بوكس: إخفاء رقم الجوال عن شجرة العائلة
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Row(
                         children: [
                           Checkbox(
-                            value: showPhoneInTree,
+                            value: hidePhoneInTree,
                             onChanged: (value) {
                               setState(() {
-                                showPhoneInTree = value ?? false;
+                                hidePhoneInTree = value ?? false;
                               });
                             },
                             side: const BorderSide(
@@ -347,7 +347,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const Expanded(
                             child: Text(
-                              'إظهار رقم جوالي لأفراد العائلة في شجرة العائلة',
+                              'إخفاء رقم جوالي عن أفراد العائلة في شجرة العائلة',
                               style: TextStyle(
                                 color: RegisterScreen.grayText,
                                 fontSize: 13,

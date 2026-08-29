@@ -48,12 +48,16 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
 
   String? gender;
   String? maritalStatus;
+  String? occupation;
   DateTime? birthDate;
 
   String? photoUrl;
   File? pickedImageFile;
 
   String? selectedFatherId;
+
+  // هل يريد إخفاء رقم الجوال عن شجرة العائلة
+  bool hidePhoneInTree = false;
 
   List<FamilyMember> allMembers = [];
 
@@ -73,10 +77,8 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
   // =========================
 
   Future<void> _init() async {
-    await Future.wait([
-      loadUser(),
-      loadFamilyMembers(),
-    ]);
+    await loadUser();
+    await loadFamilyMembers();
 
     if (mounted) {
       setState(() {
@@ -163,6 +165,24 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
       }
 
       // =========================
+      // Occupation
+      // =========================
+
+      final savedOccupation = data['occupation'];
+
+      const validOccupations = [
+        'student',
+        'government_employee',
+        'private_employee',
+      ];
+
+      if (validOccupations.contains(savedOccupation)) {
+        occupation = savedOccupation;
+      } else {
+        occupation = null;
+      }
+
+      // =========================
       // Birth date
       // =========================
 
@@ -184,6 +204,12 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
 
       selectedFatherId = data['pendingFatherId'];
 
+      // =========================
+      // Hide phone in tree
+      // =========================
+
+      hidePhoneInTree = data['hidePhoneInTree'] ?? false;
+
       if (mounted) {
         setState(() {});
       }
@@ -204,10 +230,33 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
     try {
       final members = await FamilyService().getAllMembers();
 
-      // لا نسمح للمستخدم أن يكون أبًا لنفسه
-      allMembers = members
-          .where((member) => member.id != widget.userId)
-          .toList();
+      final String myFamilyName = fourthNameController.text.trim();
+
+      // نستبعد المستخدم نفسه، ونعرض فقط أعضاء نفس اسم العائلة
+      // (الاسم الرابع) عشان الأب يكون منطقياً ومن نفس العائلة.
+      allMembers = members.where((m) {
+        if (m.id == widget.userId) return false;
+        if (myFamilyName.isEmpty) return true; // لو اسم العائلة لسه فاضي، نعرض الكل مؤقتاً
+        return (m.familyName ?? '').trim() == myFamilyName;
+      }).toList();
+
+      // حماية من كراش الدروب داون: لو الأب المحفوظ مسبقاً (pendingFatherId)
+      // غير موجود ضمن allMembers بعد الفلترة، نضيفه يدوياً للقائمة طالما
+      // هو موجود أصلاً كعضو في family_members - وإلا نصفّر الاختيار.
+      if (selectedFatherId != null) {
+        final alreadyInList =
+        allMembers.any((m) => m.id == selectedFatherId);
+
+        if (!alreadyInList) {
+          final matches = members.where((m) => m.id == selectedFatherId);
+
+          if (matches.isNotEmpty) {
+            allMembers = [matches.first, ...allMembers];
+          } else {
+            selectedFatherId = null;
+          }
+        }
+      }
     } catch (e) {
       debugPrint('ERROR loading family members: $e');
     } finally {
@@ -217,6 +266,14 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
         });
       }
     }
+  }
+
+  /// النص المعروض لكل خيار في دروب داون اختيار الأب:
+  /// "الاسم - اسم العائلة" (مثال: محمد علي - الحربي)
+  String _fatherOptionLabel(FamilyMember member) {
+    final String familyName = (member.familyName ?? '').trim();
+    if (familyName.isEmpty) return member.name;
+    return '${member.name} - $familyName';
   }
 
   // =========================
@@ -355,11 +412,13 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
         'name': fullName,
 
         'phone': phoneController.text.trim(),
+        'hidePhoneInTree': hidePhoneInTree,
         'email': emailController.text.trim(),
 
         'gender': gender,
 
         'maritalStatus': maritalStatus,
+        'occupation': occupation,
 
         'city': cityController.text.trim(),
 
@@ -648,7 +707,38 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
                   keyboardType: TextInputType.phone,
                 ),
 
-                const SizedBox(height: 14),
+                // شيك بوكس: إخفاء رقم الجوال عن شجرة العائلة
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: hidePhoneInTree,
+                        onChanged: (value) {
+                          setState(() {
+                            hidePhoneInTree = value ?? false;
+                          });
+                        },
+                        side: const BorderSide(
+                          color: Color(0xffD8D8D8),
+                          width: 1.5,
+                        ),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'إخفاء رقم جواله عن أفراد العائلة في شجرة العائلة',
+                          style: TextStyle(
+                            color: AdminEditUserScreen.textColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 6),
 
                 // البريد
                 _inputField(
@@ -667,6 +757,11 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
 
                 // الحالة الاجتماعية
                 _maritalDropdown(),
+
+                const SizedBox(height: 14),
+
+                // الوظيفة
+                _occupationDropdown(),
 
                 const SizedBox(height: 14),
 
@@ -887,28 +982,13 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
   }
 
   // =========================
-  // Father
+  // Occupation
   // =========================
 
-  Widget _fatherDropdown() {
+  Widget _occupationDropdown() {
     return _dropdownContainer(
-      child: isLoadingMembers
-          ? const Padding(
-        padding: EdgeInsets.symmetric(
-          vertical: 16,
-        ),
-        child: Center(
-          child: SizedBox(
-            height: 18,
-            width: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-            ),
-          ),
-        ),
-      )
-          : DropdownButtonFormField<String?>(
-        value: selectedFatherId,
+      child: DropdownButtonFormField<String>(
+        value: occupation,
         isExpanded: true,
         icon: const Icon(
           Icons.keyboard_arrow_down,
@@ -922,7 +1002,7 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
           ),
         ),
         hint: const Text(
-          'اختر الأب في شجرة العائلة',
+          'الوظيفة',
           textAlign: TextAlign.right,
           style: TextStyle(
             color: AdminEditUserScreen.textColor,
@@ -930,30 +1010,114 @@ class _AdminEditUserScreenState extends State<AdminEditUserScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        items: [
-          const DropdownMenuItem<String?>(
-            value: null,
-            child: Text(
-              'بدون أب (جذر العائلة)',
-            ),
+        items: const [
+          DropdownMenuItem(
+            value: 'student',
+            child: Text('طالب'),
           ),
-          ...allMembers.map(
-                (member) {
-              return DropdownMenuItem<String?>(
-                value: member.id,
-                child: Text(
-                  member.name,
-                ),
-              );
-            },
+          DropdownMenuItem(
+            value: 'government_employee',
+            child: Text('موظف قطاع حكومي'),
+          ),
+          DropdownMenuItem(
+            value: 'private_employee',
+            child: Text('موظف قطاع خاص'),
           ),
         ],
         onChanged: (value) {
           setState(() {
-            selectedFatherId = value;
+            occupation = value;
           });
         },
       ),
+    );
+  }
+
+  // =========================
+  // Father
+  // =========================
+
+  Widget _fatherDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _dropdownContainer(
+          child: isLoadingMembers
+              ? const Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: 16,
+            ),
+            child: Center(
+              child: SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+          )
+              : DropdownButtonFormField<String?>(
+            value: selectedFatherId,
+            isExpanded: true,
+            icon: const Icon(
+              Icons.keyboard_arrow_down,
+              color: AdminEditUserScreen.textColor,
+            ),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              isCollapsed: true,
+              contentPadding: EdgeInsets.symmetric(
+                vertical: 16,
+              ),
+            ),
+            hint: const Text(
+              'اختر الأب في شجرة العائلة',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: AdminEditUserScreen.textColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text(
+                  'بدون أب (جذر العائلة)',
+                ),
+              ),
+              ...allMembers.map(
+                    (member) {
+                  return DropdownMenuItem<String?>(
+                    value: member.id,
+                    child: Text(
+                      _fatherOptionLabel(member),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
+              ),
+            ],
+            onChanged: (value) {
+              setState(() {
+                selectedFatherId = value;
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            'يتم الربط بالأب مباشرة من شاشة الإدارة بدون الحاجة لموافقة إضافية',
+            style: TextStyle(
+              color: AdminEditUserScreen.textColor,
+              fontSize: 11.5,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

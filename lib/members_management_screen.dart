@@ -9,12 +9,43 @@ class MembersManagementScreen extends StatelessWidget {
   static const Color greenColor = Color(0xff008C6A);
   static const Color grayColor = Color(0xff777777);
 
+  // ⚠️ دالة مؤقتة لمرة واحدة فقط: تعيد مزامنة كل الأعضاء اللي حالتهم
+  // approved مسبقاً، عشان تلتقط أي حقول جديدة أُضيفت لاحقاً
+  // (familyName, occupation, city, bio, maritalStatus, phone...) اللي
+  // اختاروها من بروفايلهم. آمنة للتكرار (idempotent)، لكن يفضّل
+  // حذف هذا الزر بعد ما تتأكد إن كل الأعضاء اتحدّثوا بنجاح.
+  Future<void> _resyncAllApprovedMembers(BuildContext context) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('status', isEqualTo: 'approved')
+        .get();
+
+    int count = 0;
+    for (final doc in snapshot.docs) {
+      await FamilyService().syncMemberFromUser(doc.id, skipStatusCheck: true);
+      count++;
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تمت إعادة مزامنة $count عضو')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Colors.white,
+        // ⚠️ زر مؤقت - احذفه بعد التأكد من نجاح المزامنة لكل الأعضاء
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _resyncAllApprovedMembers(context),
+          label: const Text('إعادة مزامنة الكل (مؤقت)'),
+          icon: const Icon(Icons.sync),
+          backgroundColor: Colors.orange,
+        ),
         body: Column(
           children: [
             _header(context),

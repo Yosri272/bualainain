@@ -73,7 +73,7 @@ class FamilyService {
       'birthDate': data['birthDate'],
       'photoUrl': data['photoUrl'],
       'phone': data['phone'],
-      'showPhoneInTree': data['showPhoneInTree'] ?? false,
+      'hidePhoneInTree': data['hidePhoneInTree'] ?? false,
       'maritalStatus': data['maritalStatus'],
       'city': data['city'],
       'bio': data['bio'],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'services/family_service.dart';
 import 'models/family_member.dart';
 
@@ -343,6 +344,21 @@ class _MemberDetailsSheet extends StatelessWidget {
     }
   }
 
+  /// يفتح تطبيق الاتصال بالرقم المعطى بعد تنظيفه من أي مسافات أو رموز غير رقمية
+  /// (باستثناء + في حالة وجود كود دولي).
+  Future<void> _callPhone(BuildContext context, String rawPhone) async {
+    final String cleaned = rawPhone.replaceAll(RegExp(r'[^\d+]'), '');
+    final Uri uri = Uri(scheme: 'tel', path: cleaned);
+
+    final bool launched = await launchUrl(uri);
+
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر فتح تطبيق الاتصال على هذا الجهاز')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMale = member.gender == 'male';
@@ -488,13 +504,22 @@ class _MemberDetailsSheet extends StatelessWidget {
                   value: '${member.generation}',
                 ),
 
-                if (member.showPhoneInTree &&
+                // رقم الجوال - قابل للنقر لفتح تطبيق الاتصال مباشرة
+                // يظهر فقط إذا لم يختر العضو إخفاءه (hidePhoneInTree == false)
+                if (!member.hidePhoneInTree &&
                     member.phone != null &&
                     member.phone!.trim().isNotEmpty)
                   _DetailRow(
                     icon: Icons.phone_outlined,
                     label: 'رقم الجوال',
                     value: member.phone!,
+                    valueColor: FamilyTreeScreen.blue,
+                    trailing: const Icon(
+                      Icons.call_rounded,
+                      size: 18,
+                      color: FamilyTreeScreen.blue,
+                    ),
+                    onTap: () => _callPhone(context, member.phone!),
                   ),
 
                 if (children.isNotEmpty) ...[
@@ -551,56 +576,79 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final Color? valueColor;
+  final Widget? trailing;
+  final VoidCallback? onTap;
 
   const _DetailRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.valueColor,
+    this.trailing,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xffF3F5FA),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 18, color: FamilyTreeScreen.blue),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: FamilyTreeScreen.grayText,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  color: valueColor ?? FamilyTreeScreen.textColor,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (trailing != null) trailing!,
+      ],
+    );
+
+    if (onTap == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: row,
+      );
+    }
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xffF3F5FA),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: FamilyTreeScreen.blue),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: FamilyTreeScreen.grayText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: FamilyTreeScreen.textColor,
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(bottom: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: row,
+        ),
       ),
     );
   }
