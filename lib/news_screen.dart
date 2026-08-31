@@ -8,17 +8,57 @@ class NewsScreen extends StatelessWidget {
   final bool showBottomNav;
   final VoidCallback? onBackToHome;
 
+  // فلترة اختيارية حسب القسم. يمكن تمريرهما مباشرة للـ constructor،
+  // أو بديلاً عنهما عبر Navigator arguments (زي ما بيحصل من ضغطة
+  // قسم في HomeScreen: Navigator.pushNamed(context, '/news', arguments: {...}))
+  final String? categoryId;
+  final String? categoryName;
+
   const NewsScreen({
     super.key,
     this.showBottomNav = true,
     this.onBackToHome,
+    this.categoryId,
+    this.categoryName,
   });
+
   static const Color textColor = Color(0xff53617F);
   static const Color blue = Color(0xff5E7FCB);
   static const Color mint = Color(0xff9FE2D4);
 
+  /// يحدد القسم الفعلي المطلوب الفلترة عليه: إما القيمة الممررة مباشرة
+  /// للـ widget، أو (كبديل) القيمة الموجودة في Navigator arguments.
+  Map<String, String?> _resolveCategoryFilter(BuildContext context) {
+    if (categoryId != null) {
+      return {'id': categoryId, 'name': categoryName};
+    }
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      final id = args['categoryId']?.toString();
+      final name = args['categoryName']?.toString();
+      if (id != null && id.isNotEmpty) {
+        return {'id': id, 'name': name};
+      }
+    }
+
+    return {'id': null, 'name': null};
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filter = _resolveCategoryFilter(context);
+    final String? activeCategoryId = filter['id'];
+    final String? activeCategoryName = filter['name'];
+
+    Query<Map<String, dynamic>> newsQuery = FirebaseFirestore.instance
+        .collection('news')
+        .where('isPublished', isEqualTo: true);
+
+    if (activeCategoryId != null) {
+      newsQuery = newsQuery.where('categoryId', isEqualTo: activeCategoryId);
+    }
+
     return Directionality(
       textDirection: ui.TextDirection.rtl,
       child: Scaffold(
@@ -68,14 +108,21 @@ class NewsScreen extends StatelessWidget {
               ),
             ),
 
+            if (activeCategoryId != null) ...[
+              const SizedBox(height: 14),
+              _CategoryFilterBanner(
+                categoryName: activeCategoryName ?? '',
+                onClear: () {
+                  Navigator.pushReplacementNamed(context, '/news');
+                },
+              ),
+            ],
+
             const SizedBox(height: 26),
 
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('news')
-                    .where('isPublished', isEqualTo: true)
-                    .snapshots(),
+                stream: newsQuery.snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
@@ -95,10 +142,12 @@ class NewsScreen extends StatelessWidget {
 
                   if (!snapshot.hasData ||
                       snapshot.data!.docs.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text(
-                        'لا توجد أخبار',
-                        style: TextStyle(
+                        activeCategoryId != null
+                            ? 'لا توجد أخبار في هذا القسم'
+                            : 'لا توجد أخبار',
+                        style: const TextStyle(
                           color: textColor,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -230,6 +279,53 @@ class NewsScreen extends StatelessWidget {
           ),
           fit: BoxFit.cover,
         ),
+      ),
+    );
+  }
+}
+
+class _CategoryFilterBanner extends StatelessWidget {
+  final String categoryName;
+  final VoidCallback onClear;
+
+  const _CategoryFilterBanner({
+    required this.categoryName,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: onClear,
+            borderRadius: BorderRadius.circular(20),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: NewsScreen.textColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              categoryName.isNotEmpty
+                  ? 'نتائج قسم: $categoryName'
+                  : 'مفلتر حسب القسم',
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: NewsScreen.textColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

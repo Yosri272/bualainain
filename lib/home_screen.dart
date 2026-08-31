@@ -459,10 +459,30 @@ class _HomeScreenState extends State<HomeScreen> {
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final data = news[index].data() as Map<String, dynamic>;
-              final imageUrl = data['imageUrl'] ?? '';
               final Timestamp? createdAt = data['createdAt'];
               final String formattedDate =
               createdAt != null ? DateFormat('dd.MM.yyyy').format(createdAt.toDate()) : '';
+
+              // نفس منطق دعم الفيديو/الصورة المستخدم في NewsScreen و
+              // NewsDetailsScreen - يدعم الأخبار الجديدة (mediaType/mediaUrl)
+              // والقديمة (imageUrl/videoUrl)
+              final String videoUrl = (data['videoUrl'] ?? '').toString().trim();
+              final String imageUrl = (data['imageUrl'] ?? '').toString().trim();
+              final String savedMediaType =
+              (data['mediaType'] ?? '').toString().trim().toLowerCase();
+              final bool isVideo =
+                  savedMediaType == 'video' || videoUrl.isNotEmpty;
+              final String mediaUrl = (data['mediaUrl'] ??
+                  (isVideo ? videoUrl : imageUrl))
+                  .toString()
+                  .trim();
+              final String thumbnailUrl =
+              (data['thumbnailUrl'] ?? '').toString().trim();
+
+              // للفيديو: نعرض thumbnailUrl لو موجود، وإلا الصورة الافتراضية
+              // (الفيديو نفسه مش بيتحمّل كصورة معاينة هنا)
+              final String coverImageUrl =
+              isVideo ? thumbnailUrl : mediaUrl;
 
               return InkWell(
                 onTap: () {
@@ -487,15 +507,66 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(
                         height: 145,
                         width: double.infinity,
-                        child: imageUrl.toString().isNotEmpty
-                            ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) {
-                            return Image.asset('assets/images/news.png', fit: BoxFit.cover);
-                          },
-                        )
-                            : Image.asset('assets/images/news.png', fit: BoxFit.cover),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            coverImageUrl.isNotEmpty
+                                ? Image.network(
+                              coverImageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) {
+                                return Image.asset('assets/images/news.png', fit: BoxFit.cover);
+                              },
+                            )
+                                : Image.asset('assets/images/news.png', fit: BoxFit.cover),
+
+                            if (isVideo) ...[
+                              Container(
+                                color: Colors.black.withValues(alpha: 0.20),
+                              ),
+                              const Center(
+                                child: Icon(
+                                  Icons.play_circle_fill_rounded,
+                                  color: Colors.white,
+                                  size: 42,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.videocam_rounded,
+                                        color: Colors.white,
+                                        size: 13,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'فيديو',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                       Container(
                         height: 105,
